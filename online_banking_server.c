@@ -20,10 +20,91 @@
 #define RECV_USERBUFFER_SIZE 1024
 // #include <netinet/ip.h>
 
+int* authenticate(char *username, char *password)
+{
+    int fd;
+    int user_type;
+    char *buffer = (char *)malloc(140);
+    static int auth_arr[3];
+
+    fd = open("LoginInformation.txt", O_RDONLY, 0);
+    if (fd <= 0)
+    {
+        perror("Could not open the file containing login information.\n");
+        return NULL;
+    }
+
+    int found_username = 0;
+    int correct_password = 0;
+    int undefined_usertype = 0;
+
+    int i = 0;
+    while(read(fd, &buffer[i], 1) == 1)
+    {
+        if(buffer[i] == '\n' || buffer[i] == 0x0 )
+        {
+            buffer[i] = 0;
+
+            char *token = strtok(buffer, " ");
+            if(strcmp(token, username) == 0)
+            {
+                found_username = 1;
+                token = strtok(NULL, " ");
+                if(strcmp(token, password) == 0)
+                {
+                    correct_password = 1;
+                    token = strtok(NULL, " ");
+                    if(!strncmp(token, "Normal", strlen("Normal")))
+                    {
+                        user_type = 0;
+                    }
+
+                    else if (!strncmp(buffer, "Joint", strlen("Joint")))
+                    {
+                        user_type = 1;
+                    }
+
+                    else if (!strncmp(buffer, "Admin", strlen("Admin")))
+                    {
+                        user_type = 2;
+                    }
+
+                    else
+                    {
+                        user_type = -1;
+                    }
+                }
+            
+                else
+                {
+                    correct_password = -1;
+                    found_username = 0;
+                }
+            }
+
+            else
+            {
+                found_username = -1;
+            }
+            
+            i = 0;
+            continue;
+        }
+
+        i += 1;
+
+    }
+
+    auth_arr[0] = found_username;
+    auth_arr[1] = correct_password;
+    auth_arr[2] = user_type;
+    
+    return auth_arr;
+}
+
 // Send and Receive protocols to take care of the message boundary problem.
 // Refer to "https://www.codeproject.com/Articles/11922/Solution-for-TCP-IP-client-socket-message-boundary"
-// for the message boundary problem
-
+// to more about the message boundary problem.
 void send_to_client(int clientfd, char *message)
 {
     int size_header = (strlen(message)-1)/ SEND_USERBUFFER_SIZE + 1;
@@ -117,9 +198,42 @@ void *client_handler(void *a )
     username = (char *) malloc(140);
     password = (char *) malloc(140);
 
-    login_prompt(username, password, clientfd);
-    printf("%s\n%s\n", username, password);
+    int* auth_values;
 
+    login_prompt(username, password, clientfd);
+    // printf("%s\n%s\n", username, password);
+    auth_values = authenticate(username, password);
+
+    if(auth_values[0] == -1)
+    {
+        printf("No such user exists!\n");
+        pthread_exit(NULL);
+    } 
+
+    if(auth_values[1] == -1)
+    {
+        printf("Incorrect password entered!\n");
+        pthread_exit(NULL);
+    }
+
+    switch (auth_values[3])
+    {
+        case 0:
+            printf("Normal User\n");
+            break;
+
+        case 1:
+            printf("Joint User\n");
+            break;
+
+        case 2:
+            printf("Admin User\n");
+            break;
+
+        default:
+            printf("Incorrect User Type!\n");
+            break;
+    }
     // while(1)
     // {
     //     char buffer[100];
