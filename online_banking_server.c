@@ -114,16 +114,16 @@ int deposit_withdraw_handler(int account_id, int operation, int amount)
             strcat(buffer_copy, " ");
             // printf("YOLO\n");
             int read_accid = atoi(token);
-            token = strtok(NULL, " ");
-            strcat(buffer_copy, token);
-            strcat(buffer_copy, " ");  //First Name
-            token = strtok(NULL, " ");
-            strcat(buffer_copy, token);
-            strcat(buffer_copy, " ");  //Last Name
-            token = strtok(NULL, " ");
-            strcat(buffer_copy, token);
-            strcat(buffer_copy, " ");  //Account Type
-            token = strtok(NULL, " ");
+            token = strtok(NULL, " "); //First Name
+            strcat(buffer_copy, token); 
+            strcat(buffer_copy, " ");
+            token = strtok(NULL, " "); //Last Name
+            strcat(buffer_copy, token); 
+            strcat(buffer_copy, " ");
+            token = strtok(NULL, " "); //Account Type
+            strcat(buffer_copy, token); 
+            strcat(buffer_copy, " ");  
+            token = strtok(NULL, " "); //Amount
             // printf("%s\n", buffer_copy);
             
 
@@ -168,7 +168,7 @@ int deposit_withdraw_handler(int account_id, int operation, int amount)
                     }
                 }
             }
-            strcat(buffer_copy, token); //Amount
+            strcat(buffer_copy, token); 
             strcat(buffer_copy, "\n"); 
             // printf("Token : %s\n", token);
             printf("Buffer : %s\n", buffer_copy);
@@ -195,9 +195,68 @@ int deposit_withdraw_handler(int account_id, int operation, int amount)
     return retval;
 }
 
-void enquiry_handler(int account_id, int operation)
+int check_balance(int account_id)
 {
+    int retval = -1;
+    char* buffer = (char *)malloc(140);
+    
+    // pthread_mutex_lock(&mutex1);
+    
+    int fd = open("AccountsInformation.txt", O_RDONLY, 0);
+    // printf("fd1 : %d\n", fd1);
+    if (fd < 0)
+    {
+        perror("Could not open the file containing accounts information.\n");
+        // return NULL;
+    }
 
+    // printf("fd : %d\n", fd);
+    int i = 0;
+    while (read(fd, &buffer[i], 1) == 1)
+    {   
+        // printf("%s\n", buffer[i]);
+        if (buffer[i] == '\n' || buffer[i] == 0x0)
+        {
+            buffer[i] = 0;
+            // printf("%s\n", buffer);
+            char buffer_copy[140];
+            // printf("YOLO\n");
+            char *token = strtok(buffer, " "); //account ID
+            strcpy(buffer_copy, token);
+            strcat(buffer_copy, " ");
+            // printf("YOLO\n");
+            int read_accid = atoi(token);
+            token = strtok(NULL, " "); //First Name
+            strcat(buffer_copy, token);
+            strcat(buffer_copy, " ");
+            token = strtok(NULL, " "); //Last Name
+            strcat(buffer_copy, token);
+            strcat(buffer_copy, " ");
+            token = strtok(NULL, " "); //Account Type
+            strcat(buffer_copy, token);
+            strcat(buffer_copy, " ");
+            token = strtok(NULL, " "); //Amount
+            // printf("%s\n", buffer_copy);
+        
+        
+            if (read_accid == account_id)
+            {
+
+                int read_amt = atoi(token);
+                retval = read_amt;
+            }
+            
+            i = 0;
+            continue;
+        
+        }
+
+        i += 1;
+        
+    }
+
+    // pthread_mutex_unlock(&mutex1);
+    return retval;
 }
 
 int request_admin_password_change(char *username, char *new_password)
@@ -227,7 +286,9 @@ void user_handler(char *username, char* password, int unique_account_id, int cli
         char *new_password = (char *)malloc(140);
         char *confirm_password = (char *)malloc(140);
 
-        int ret;
+        int deposit_withdraw_ret;
+        int balance;
+        char *balance_str = (char *)malloc(140);
         switch (choice)
         {
             case 1:
@@ -246,8 +307,8 @@ void user_handler(char *username, char* password, int unique_account_id, int cli
                 amt = receive_from_client(clientfd);
                 amount = atoi(amt);
 
-                ret = deposit_withdraw_handler(account_id, operation, amount);
-                if(ret == 0)
+                deposit_withdraw_ret = deposit_withdraw_handler(account_id, operation, amount);
+                if(deposit_withdraw_ret == 0)
                 {
                     send_to_client(clientfd, "Money Deposited Successfully\n");
                 }
@@ -274,8 +335,8 @@ void user_handler(char *username, char* password, int unique_account_id, int cli
                 amt = receive_from_client(clientfd);
                 amount = atoi(amt);
 
-                ret = deposit_withdraw_handler(account_id, operation, amount);
-                if (ret == -1)
+                deposit_withdraw_ret = deposit_withdraw_handler(account_id, operation, amount);
+                if (deposit_withdraw_ret == -1)
                 {
                     send_to_client(clientfd, "Transaction Failed. Insufficient Balance\n");
                 }
@@ -299,7 +360,19 @@ void user_handler(char *username, char* password, int unique_account_id, int cli
                     break;
                 }
 
-                enquiry_handler(account_id, operation);
+                balance = check_balance(account_id);
+
+                if(balance == -1)
+                {
+                    send_to_client(clientfd,"The account no longer exists!\n");
+                }
+                else
+                {
+                    sprintf(balance_str, "%d", balance);
+                    strcat(balance_str, " is your balance\n");
+                    send_to_client(clientfd, balance_str);
+                }
+                
                 break;
 
             case 4:
@@ -347,7 +420,7 @@ void user_handler(char *username, char* password, int unique_account_id, int cli
                     break;
                 }
                 
-                enquiry_handler(account_id, operation);
+                // enquiry_handler(account_id, operation);
                 break;
 
             case 6:
