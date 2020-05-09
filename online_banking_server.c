@@ -259,15 +259,10 @@ int check_balance(int account_id)
     return retval;
 }
 
-int request_admin_password_change(char *username, char *new_password)
-{
-
-}
-
 void user_handler(char *username, char* password, int unique_account_id, int clientfd)
 {   
     int track_session = 1;
-    send_to_client(clientfd, "Do you want to:\n1. Deposit\n2. Withdraw\n3. Balance Enquiry\n4. Password Change\n5. View Details\n6. Exit\nPlease enter number of your choice: \n\n");
+    send_to_client(clientfd, "Do you want to:\n1. Deposit\n2. Withdraw\n3. Balance Enquiry\n4. Password Change\n5. View Details\n6. Delete Account\n7. Exit\nPlease enter number of your choice: \n\n");
 
     char *response = (char *)malloc(140);
     while(track_session == 1)
@@ -289,6 +284,9 @@ void user_handler(char *username, char* password, int unique_account_id, int cli
         int deposit_withdraw_ret;
         int balance;
         char *balance_str = (char *)malloc(140);
+
+        int query_fd;
+        char *query_buff = (char *)malloc(140);
         switch (choice)
         {
             case 1:
@@ -392,18 +390,36 @@ void user_handler(char *username, char* password, int unique_account_id, int cli
                     
                     if(strcmp(new_password, confirm_password) == 0)
                     {
-                        request_admin_password_change(username, new_password);
-
+                        pthread_mutex_lock(&mutex1);
+                        query_fd = open("AdminRequests.txt", O_WRONLY, 0);
+                        if(query_fd < 0)
+                        {
+                            printf("Could not open the file containing requests to Admin.\n");
+                        }
+                        strcpy(query_buff, "Modify ");
+                        strcat(query_buff,username);
+                        strcat(query_buff, " ");
+                        strcat(query_buff, password);
+                        strcat(query_buff, " ");
+                        strcat(query_buff, new_password);
+                        strcat(query_buff, "\n");
+                        
+                        lseek(query_fd, 0L, SEEK_END);
+                        write(query_fd, query_buff, strlen(query_buff));
+                        pthread_mutex_unlock(&mutex1);
+                        send_to_client(clientfd, "Your query has been successfully added to the query list for the Admin to be reviewed.\n");
+                        break;
                     }
                     else
                     {
-                        printf("Incorrect confirmation password.\n");
+                        send_to_client(clientfd, "Incorrect confirmation password.\n");
+                        break;
                     }
                     
                 }
                 else
                 {
-                    printf("The password you have entered is incorrect.\n");
+                    send_to_client(clientfd, "The password you have entered is incorrect.\n");
                 }
                 
                 break;
@@ -419,21 +435,58 @@ void user_handler(char *username, char* password, int unique_account_id, int cli
                     send_to_client(clientfd, "Incorrect Account ID!\n");
                     break;
                 }
-                
-                // enquiry_handler(account_id, operation);
+
+                pthread_mutex_lock(&mutex1);
+                query_fd = open("AdminRequests.txt", O_WRONLY, 0);
+                if (query_fd < 0)
+                {
+                    printf("Could not open the file containing requests to Admin.\n");
+                }
+                strcpy(query_buff, "Search ");
+                strcat(query_buff, acc_id);
+                strcat(query_buff, "\n");
+
+                lseek(query_fd, 0L, SEEK_END);
+                write(query_fd, query_buff, strlen(query_buff));
+                pthread_mutex_unlock(&mutex1);
+                send_to_client(clientfd, "Your query has been successfully added to the query list for the Admin to be reviewed.\n");
                 break;
 
             case 6:
-                // int account_id;
-                // int operation = 3;
+                operation = 6;
 
-                // send_to_client(clientfd, "Enter your account number: \n");
-                // char *acc_id = (char *)malloc(140);
-                // acc_id = receive_from_client(clientfd);
-                // account_id = atoi(acc_id);
+                send_to_client(clientfd, "Enter your account number: \n");
+                char *acc_id = (char *)malloc(140);
+                acc_id = receive_from_client(clientfd);
+                account_id = atoi(acc_id);
+                
+                if (account_id != unique_account_id)
+                {
+                    send_to_client(clientfd, "Incorrect Account ID!\n");
+                    break;
+                }
 
-                // enquiry_handler(account_id, operation);
+                pthread_mutex_lock(&mutex1);
+                query_fd = open("AdminRequests.txt", O_WRONLY, 0);
+                if (query_fd < 0)
+                {
+                    printf("Could not open the file containing requests to Admin.\n");
+                }
+                strcpy(query_buff, "Delete ");
+                strcat(query_buff, acc_id);
+                strcat(query_buff, "\n");
+
+                lseek(query_fd, 0L, SEEK_END);
+                write(query_fd, query_buff, strlen(query_buff));
+                pthread_mutex_unlock(&mutex1);
+                send_to_client(clientfd, "Your query has been successfully added to the query list for the Admin to be reviewed.\n");
                 break;
+
+            case 7:
+                track_session = 0;
+                break;
+
+                
         }
     }
 }
