@@ -19,7 +19,7 @@
 #define SEND_USERBUFFER_SIZE 1024
 #define RECV_USERBUFFER_SIZE 1024
 
-pthread_mutex_t mutex1 = PTHREAD_MUTEX_INITIALIZER;
+// pthread_mutex_t mutex1 = PTHREAD_MUTEX_INITIALIZER;
 // pthread_mutex_t mutex2 = PTHREAD_MUTEX_INITIALIZER;
 // #include <netinet/ip.h>
 // Send and Receive protocols to take care of the message boundary problem.
@@ -79,6 +79,8 @@ int deposit_withdraw_handler(int account_id, int operation, int amount)
     int fd2;
     char* buffer = (char *)malloc(140);
 
+    int retval = 0;
+
     // pthread_mutex_lock(&mutex1);
     
     fd1 = open("AccountsInformation.txt", O_RDONLY, 0);
@@ -136,13 +138,14 @@ int deposit_withdraw_handler(int account_id, int operation, int amount)
                 }
                 else
                 {
-                    if((read_amt - amt) > 0)
+                    if((read_amt - amt) >= 0)
                     {
                         new_amt = read_amt - amt;
                     }
                     else
                     {
-                        return -1;
+                        retval = -1;
+                        new_amt = read_amt;
                         // send_to_client(clientfd, "Insufficient Balance!\n");
                     }
                     
@@ -185,7 +188,7 @@ int deposit_withdraw_handler(int account_id, int operation, int amount)
     int ren = rename("AccountsInformationDuplicate.txt", "AccountsInformation.txt");
     printf("Rename : %d\n", ren);
     printf("WTAF\n");
-    return 0;
+    return retval;
     // pthread_mutex_unlock(&mutex1);
 }
 
@@ -599,7 +602,7 @@ int main(int argc, char **argv)
     listen(sockfd,5);
     printf("Listening for clients\n");
 
-    pthread_mutex_init(&mutex1, NULL);
+    // pthread_mutex_init(&mutex1, NULL);
     // pthread_mutex_init(&mutex2, NULL);
 
     pthread_t thread_ids[10];
