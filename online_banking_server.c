@@ -19,9 +19,10 @@
 #define SEND_USERBUFFER_SIZE 1024
 #define RECV_USERBUFFER_SIZE 1024
 
-// pthread_mutex_t mutex1 = PTHREAD_MUTEX_INITIALIZER;
+pthread_mutex_t mutex1 = PTHREAD_MUTEX_INITIALIZER;
 // pthread_mutex_t mutex2 = PTHREAD_MUTEX_INITIALIZER;
 // #include <netinet/ip.h>
+
 // Send and Receive protocols to take care of the message boundary problem.
 // Refer to "https://www.codeproject.com/Articles/11922/Solution-for-TCP-IP-client-socket-message-boundary"
 // to learn more about the message boundary problem.
@@ -81,7 +82,7 @@ int deposit_withdraw_handler(int account_id, int operation, int amount)
 
     int retval = 0;
 
-    // pthread_mutex_lock(&mutex1);
+    pthread_mutex_lock(&mutex1);
     
     fd1 = open("AccountsInformation.txt", O_RDONLY, 0);
     printf("fd1 : %d\n", fd1);
@@ -183,13 +184,15 @@ int deposit_withdraw_handler(int account_id, int operation, int amount)
     printf("WTF\n");
     close(fd1);
     close(fd2);
+    
     int rem = remove("AccountsInformation.txt");
     printf("Remove : %d\n", rem);
     int ren = rename("AccountsInformationDuplicate.txt", "AccountsInformation.txt");
     printf("Rename : %d\n", ren);
     printf("WTAF\n");
+    pthread_mutex_unlock(&mutex1);
+    
     return retval;
-    // pthread_mutex_unlock(&mutex1);
 }
 
 void enquiry_handler(int account_id, int operation)
@@ -202,7 +205,7 @@ int request_admin_password_change(char *username, char *new_password)
 
 }
 
-void user_handler(char *username, char* password, int clientfd)
+void user_handler(char *username, char* password, int unique_account_id, int clientfd)
 {   
     int track_session = 1;
     send_to_client(clientfd, "Do you want to:\n1. Deposit\n2. Withdraw\n3. Balance Enquiry\n4. Password Change\n5. View Details\n6. Exit\nPlease enter number of your choice: \n\n");
@@ -233,6 +236,11 @@ void user_handler(char *username, char* password, int clientfd)
                 send_to_client(clientfd, "Enter your account number: \n");
                 acc_id = receive_from_client(clientfd);
                 account_id = atoi(acc_id);
+                if(account_id != unique_account_id)
+                {
+                    send_to_client(clientfd, "Incorrect Account ID!\n");
+                    break;  
+                }
 
                 send_to_client(clientfd, "Enter amount to deposit: \n");
                 amt = receive_from_client(clientfd);
@@ -256,6 +264,11 @@ void user_handler(char *username, char* password, int clientfd)
                 send_to_client(clientfd, "Enter your account number: \n");
                 acc_id = receive_from_client(clientfd);
                 account_id = atoi(acc_id);
+                if (account_id != unique_account_id)
+                {
+                    send_to_client(clientfd, "Incorrect Account ID!\n");
+                    break;
+                }
 
                 send_to_client(clientfd, "Enter amount to withdraw: \n");
                 amt = receive_from_client(clientfd);
@@ -280,8 +293,12 @@ void user_handler(char *username, char* password, int clientfd)
                 send_to_client(clientfd, "Enter your account number: \n");
                 acc_id = receive_from_client(clientfd);
                 account_id = atoi(acc_id);
+                if (account_id != unique_account_id)
+                {
+                    send_to_client(clientfd, "Incorrect Account ID!\n");
+                    break;
+                }
 
-                
                 enquiry_handler(account_id, operation);
                 break;
 
@@ -324,7 +341,12 @@ void user_handler(char *username, char* password, int clientfd)
                 send_to_client(clientfd, "Enter your account number: \n");
                 acc_id = receive_from_client(clientfd);
                 account_id = atoi(acc_id);
-
+                if (account_id != unique_account_id)
+                {
+                    send_to_client(clientfd, "Incorrect Account ID!\n");
+                    break;
+                }
+                
                 enquiry_handler(account_id, operation);
                 break;
 
@@ -343,7 +365,7 @@ void user_handler(char *username, char* password, int clientfd)
     }
 }
 
-void admin_user_handler(char *username, char *password, int clientfd)
+void admin_user_handler(char *username, char *password, int unique_account_id, int clientfd)
 {
 
 }
@@ -352,8 +374,9 @@ int* authenticate(char *username, char *password)
 {
     int fd;
     int user_type;
+    int unique_account_id;
     char *buffer = (char *)malloc(140);
-    static int auth_arr[3];
+    static int auth_arr[4];
     
     fd = open("LoginInformation.txt", O_RDONLY, 0);
     if (fd <= 0)
@@ -386,26 +409,32 @@ int* authenticate(char *username, char *password)
                     if(!strncmp(token, "Normal", strlen("Normal")))
                     {
                         user_type = 0;
+                        token = strtok(NULL, " ");
+                        unique_account_id = atoi(token);
                         break;
                     }
 
                     else if (!strncmp(token, "Joint", strlen("Joint")))
                     {
                         user_type = 1;
-                        printf("%s\n", token);
-                        printf("%d\n", user_type);
+                        token = strtok(NULL, " ");
+                        unique_account_id = atoi(token);
                         break;
                     }
 
                     else if (!strncmp(token, "Admin", strlen("Admin")))
                     {
                         user_type = 2;
+                        token = strtok(NULL, " ");
+                        unique_account_id = atoi(token);
                         break;
                     }
 
                     else
                     {
                         user_type = 3;
+                        token = strtok(NULL, " ");
+                        unique_account_id = atoi(token);
                         break;
                     }
                 }
@@ -439,6 +468,7 @@ int* authenticate(char *username, char *password)
     auth_arr[0] = found_username;
     auth_arr[1] = correct_password;
     auth_arr[2] = user_type;
+    auth_arr[3] = unique_account_id;
     
     return auth_arr;
 }
@@ -497,6 +527,7 @@ void *client_handler(void *a )
     login_prompt(username, password, clientfd);
     // printf("%s\n%s\n", username, password);
     auth_values = authenticate(username, password);
+    int unique_account_id = auth_values[3];
 
     if(auth_values[0] == -1)
     {
@@ -514,17 +545,17 @@ void *client_handler(void *a )
     {
         case 0:
             printf("Normal User\n");
-            user_handler(username, password, clientfd);
+            user_handler(username, password, unique_account_id, clientfd);
             break;
 
         case 1:
             printf("Joint User\n");
-            user_handler(username, password, clientfd);
+            user_handler(username, password, unique_account_id, clientfd);
             break;
 
         case 2:
             printf("Admin User\n");
-            admin_user_handler(username, password, clientfd);
+            admin_user_handler(username, password, unique_account_id, clientfd);
             break;
 
         case 3:
@@ -602,7 +633,7 @@ int main(int argc, char **argv)
     listen(sockfd,5);
     printf("Listening for clients\n");
 
-    // pthread_mutex_init(&mutex1, NULL);
+    pthread_mutex_init(&mutex1, NULL);
     // pthread_mutex_init(&mutex2, NULL);
 
     pthread_t thread_ids[10];

@@ -105,13 +105,13 @@ int main(int argc, char **argv)
     {
         break;
     }
-    printf("Message from Server: %s\n", server_response);
+    printf("%s\n", server_response);
     free(server_response);
 
 
     memset(message,0,sizeof(message));
     // printf("WTF\n");
-    printf("Enter message to server: \n");
+    printf("Enter response to server: \n");
     scanf(" %[^\n]", message);
     // printf("%s\n", message);
     send_to_server(sockfd, message);
