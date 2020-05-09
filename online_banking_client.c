@@ -60,8 +60,16 @@ char* receive_from_server(int sockfd)
     return receive_message;
 }
 
-int main()
+int main(int argc, char **argv)
 {
+    if (argc < 2)
+    {
+        printf("Insufficient Number of arguments\nPlease enter a port number!\n");
+        exit(0);
+    }
+
+    int port_number = atoi(argv[1]);
+    
     printf("CLIENT...\n");
 
     int sockfd = socket(AF_INET, SOCK_STREAM,0);
@@ -74,7 +82,7 @@ int main()
 
     struct sockaddr_in sock_name;
     sock_name.sin_family = AF_INET;
-    sock_name.sin_port = htons(5000);
+    sock_name.sin_port = htons(port_number);
     sock_name.sin_addr.s_addr = inet_addr("127.0.0.1");
 
     int c = connect(sockfd, (struct sockaddr*)(&sock_name), sizeof(sock_name));
