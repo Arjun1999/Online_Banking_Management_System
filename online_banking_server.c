@@ -271,8 +271,131 @@ void modify_account_handler(char *buffer)
 
 }
 
-void delete_account_handler(char *buffer)
+void delete_account_handler(char *query)
 {
+    char *buffer_login = (char *)malloc(140);
+    char *buffer_account = (char *)malloc(140);
+
+    char *buffer_copy_login = (char *)malloc(140);
+    char *buffer_copy_account = (char *)malloc(140);
+
+    char *token_query = strtok(query, " ");
+
+    token_query = strtok(NULL, " "); //Account Number
+    int account_id = atoi(token_query);
+
+    pthread_mutex_lock(&mutex3);
+
+    int fd1 = open("AccountsInformation.txt", O_RDONLY, 0);
+    // printf("fd1 : %d\n", fd1);
+    if (fd1 < 0)
+    {
+        perror("Could not open the file containing accounts information.\n");
+        // return NULL;
+    }
+
+    int fd2 = open("AccountsInformationDuplicate.txt", O_WRONLY | O_CREAT, 0777);
+    // printf("fd1 : %d\n", fd1);
+    if (fd2 < 0)
+    {
+        perror("Could not open the file containing duplicate accounts information.\n");
+        // return NULL;
+    }
+
+    int i = 0;
+    while (read(fd1, &buffer_account[i], 1) == 1)
+    {
+        // printf("%s\n", buffer[i]);
+        if (buffer_account[i] == '\n' || buffer_account[i] == 0x0)
+        {
+            buffer_account[i] = 0;
+            strcpy(buffer_copy_account, buffer_account);
+            strcat(buffer_copy_account, "\n");
+            // printf("%s\n", buffer);
+            // char buffer_copy[140];
+            // printf("YOLO\n");
+            
+            char *token_account = strtok(buffer_account, " "); //Account ID
+            int read_accid = atoi(token_account);
+
+            
+            if (read_accid != account_id)
+            {
+                write(fd2, buffer_copy_account, strlen(buffer_copy_account));
+            }
+
+            i = 0;
+            continue;
+        }
+
+        i += 1;
+    }
+
+    close(fd1);
+    close(fd2);
+
+    int rem = remove("AccountsInformation.txt");
+    // printf("Remove : %d\n", rem);
+    int ren = rename("AccountsInformationDuplicate.txt", "AccountsInformation.txt");
+    // printf("Rename : %d\n", ren);
+
+    pthread_mutex_unlock(&mutex3);
+    
+    // printf("Before mutex2\n");
+    
+    pthread_mutex_lock(&mutex2);
+
+    int fd3 = open("LoginInformation.txt", O_RDONLY, 0);
+    // printf("fd3 : %d\n", fd3);
+    if (fd3 < 0)
+    {
+        perror("Could not open the file containing login information.\n");
+        // return NULL;
+    }
+
+    int fd4 = open("LoginInformationDuplicate.txt", O_WRONLY | O_CREAT, 0777);
+    // printf("fd4 : %d\n", fd4);
+    if (fd4 < 0)
+    {
+        perror("Could not open the file containing duplicate login information.\n");
+        // return NULL;
+    }
+
+    i = 0;
+    while (read(fd3, &buffer_login[i], 1) == 1)
+    {
+        if (buffer_login[i] == '\n' || buffer_login[i] == 0x0)
+        {
+            buffer_login[i] = 0;
+            strcpy(buffer_copy_login, buffer_login);
+            strcat(buffer_copy_login, "\n");
+
+            char *token_login = strtok(buffer_login, " "); //Username
+            token_login = strtok(NULL, " "); //Password
+            token_login = strtok(NULL, " "); //User Type
+            token_login = strtok(NULL, " "); //Account Number
+            int accid = atoi(token_login);
+
+            if(accid != account_id)
+            {   
+                    write(fd4, buffer_copy_login , strlen(buffer_copy_login));
+            }
+
+            i = 0;
+            continue;
+        }
+
+        i += 1;
+    }
+    
+    close(fd3);
+    close(fd4);
+
+    rem = remove("LoginInformation.txt");
+    // printf("Remove : %d\n", rem);
+    ren = rename("LoginInformationDuplicate.txt", "LoginInformation.txt");
+    // printf("Rename : %d\n", ren);
+    pthread_mutex_unlock(&mutex2);
 
 }
 
@@ -441,7 +564,7 @@ int individual_handler(int request_type)
                 // return NULL;
             }
 
-            fd2 = open("AdminRequestsDuplicate.txt", O_WRONLY | O_CREAT);
+            fd2 = open("AdminRequestsDuplicate.txt", O_WRONLY | O_CREAT, 0777);
             // printf("fd2 : %d\n", fd2);
             if (fd2 < 0)
             {
@@ -504,7 +627,7 @@ int individual_handler(int request_type)
                 // return NULL;
             }
 
-            fd2 = open("AdminRequestsDuplicate.txt", O_WRONLY | O_CREAT);
+            fd2 = open("AdminRequestsDuplicate.txt", O_WRONLY | O_CREAT, 0777);
             // printf("fd2 : %d\n", fd2);
             if (fd2 < 0)
             {
