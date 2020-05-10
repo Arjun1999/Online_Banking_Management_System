@@ -657,13 +657,96 @@ void *client_handler(void *a )
 
     if(auth_values[0] == -1)
     {
-        printf("No such user exists!\n");
+        send_to_client(clientfd, "No such user exists!\n\nDo you wish to add a new account? (Y/N)\n");
+        char * response = receive_from_client(clientfd);
+        
+        if(strcmp(response, "Y") == 0)
+        {
+            char *new_username = (char *) malloc(140);
+            char *new_password = (char *) malloc(140);
+            char *new_user_type = (char *) malloc(140);
+            char *new_acc_no = (char *) malloc(140);
+            int new_acc_number;
+            char *new_fname = (char *) malloc(140);
+            char *new_lname = (char *) malloc(140);
+            char *new_acc_type = (char *) malloc(140);
+            char *new_initial_dep = (char *) malloc(140);
+
+            send_to_client(clientfd, "Enter the previously entered username: \n");
+            new_username = receive_from_client(clientfd);
+
+            send_to_client(clientfd, "Enter a password: \n");
+            new_password = receive_from_client(clientfd);
+
+            send_to_client(clientfd, "Enter User type (Normal/Joint/Admin): \n");
+            new_user_type = receive_from_client(clientfd);
+
+            if(strcmp(new_user_type,"Joint") == 0)
+            {
+                send_to_client(clientfd, "Enter the joint account number: \n");
+                new_acc_no = receive_from_client(clientfd);
+            }
+
+            else
+            {
+                srand(time(NULL));
+                new_acc_number = rand() % 10000 + 1;
+                sprintf(new_acc_no, "%d", new_acc_number);
+            }
+            
+            
+            send_to_client(clientfd, "Enter First Name: \n");
+            new_fname = receive_from_client(clientfd);
+
+            send_to_client(clientfd, "Enter Last Name: \n");
+            new_lname = receive_from_client(clientfd);
+
+            send_to_client(clientfd, "Enter Account type (Savings/Current): \n");
+            new_acc_type = receive_from_client(clientfd);
+            
+            send_to_client(clientfd, "Enter initial deposit: \n");
+            new_initial_dep = receive_from_client(clientfd);
+
+            pthread_mutex_lock(&mutex1);
+            int query_fd = open("AdminRequests.txt", O_WRONLY, 0);
+            if (query_fd < 0)
+            {
+                printf("Could not open the file containing requests to Admin.\n");
+            }
+            char *query_buff = (char *)malloc(140);
+            strcpy(query_buff, "Add ");
+            strcat(query_buff, new_username);
+            strcat(query_buff, " ");
+            strcat(query_buff, new_password);
+            strcat(query_buff, " ");
+            strcat(query_buff, new_user_type);
+            strcat(query_buff, " ");
+            strcat(query_buff, new_acc_no);
+            strcat(query_buff, " ");
+            strcat(query_buff, new_fname);
+            strcat(query_buff, " ");
+            strcat(query_buff, new_lname);
+            strcat(query_buff, " ");
+            strcat(query_buff, new_acc_type);
+            strcat(query_buff, " ");
+            strcat(query_buff, new_initial_dep);
+            strcat(query_buff, "\n");
+
+            lseek(query_fd, 0L, SEEK_END);
+            write(query_fd, query_buff, strlen(query_buff));
+            pthread_mutex_unlock(&mutex1);
+            send_to_client(clientfd, "Your query has been successfully added to the query list for the Admin to be reviewed.\n");
+        }
+        else
+        {
+            send_to_client(clientfd, "Thank you for visiting!\n");
+        }
         pthread_exit(NULL);
     } 
 
     if(auth_values[1] == -1)
     {
-        printf("Incorrect password entered!\n");
+        send_to_client(clientfd, "Incorrect password entered!\n");
         pthread_exit(NULL);
     }
 
