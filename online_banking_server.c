@@ -261,14 +261,104 @@ int check_balance(int account_id)
     return retval;
 }
 
-void search_account_handler(char *buffer)
+void search_account_handler(char *query)
 {
 
 }
 
-void modify_account_handler(char *buffer)
+void modify_account_handler(char *query)
 {
+    char *buffer_login = (char *)malloc(140);
+    char *buffer_response_login = (char *)malloc(140);
+    char *buffer_copy_login = (char *)malloc(140);
+    char *token_query_username = (char *)malloc(140);
 
+    char *token_query = strtok(query, " "); //Modify
+    token_query = strtok(NULL, " "); //Username
+    strcpy(token_query_username, token_query);
+    token_query = strtok(NULL, " "); // Previous Password
+    token_query = strtok(NULL, " "); // New Password
+
+    pthread_mutex_lock(&mutex2);
+
+    int fd3 = open("LoginInformation.txt", O_RDONLY, 0);
+    // printf("fd3 : %d\n", fd3);
+    if (fd3 < 0)
+    {
+        perror("Could not open the file containing login information.\n");
+        // return NULL;
+    }
+
+    int fd4 = open("LoginInformationDuplicate.txt", O_WRONLY | O_CREAT, 0777);
+    // printf("fd4 : %d\n", fd4);
+    if (fd4 < 0)
+    {
+        perror("Could not open the file containing duplicate login information.\n");
+        // return NULL;
+    }
+
+    int i = 0;
+    while (read(fd3, &buffer_login[i], 1) == 1)
+    {
+        if (buffer_login[i] == '\n' || buffer_login[i] == 0x0)
+        {
+            buffer_login[i] = 0;
+            strcpy(buffer_copy_login, buffer_login);
+            strcat(buffer_copy_login, "\n");
+
+            char *token_login = strtok(buffer_login, " "); //Username
+            strcpy(buffer_response_login, token_login);
+            strcat(buffer_response_login, " ");
+
+            
+            printf("Token comp : %d\n", strcmp(token_login, token_query_username));
+            
+            if(strcmp(token_login, token_query_username) == 0)
+            {   
+                printf("Inside\n");
+                // printf("Token login : %s\n", token_login);
+                // printf("Token Query : %s\n", token_query);
+                printf("Should be new pass : %s\n", token_query);
+
+                strcat(buffer_response_login, token_query); //New Password
+                strcat(buffer_response_login, " ");
+                printf("Resp after new pass : %s\n", buffer_response_login);
+
+                token_login = strtok(NULL, " "); //Password
+
+                token_login = strtok(NULL, " "); //User Type
+                strcat(buffer_response_login, token_login);
+                strcat(buffer_response_login, " ");
+
+                token_login = strtok(NULL, " "); //Account Number
+                strcat(buffer_response_login, token_login);
+                strcat(buffer_response_login, "\n");
+
+                printf("%s\n", buffer_response_login);
+
+                write(fd4, buffer_response_login, strlen(buffer_response_login));
+            }
+            else
+            {
+                printf("%s\n", buffer_copy_login);
+                write(fd4, buffer_copy_login, strlen(buffer_copy_login));
+            }
+            
+            i = 0;
+            continue;
+        }
+
+        i += 1;
+    }
+
+    close(fd3);
+    close(fd4);
+
+    int rem = remove("LoginInformation.txt");
+    // printf("Remove : %d\n", rem);
+    int ren = rename("LoginInformationDuplicate.txt", "LoginInformation.txt");
+    // printf("Rename : %d\n", ren);
+    pthread_mutex_unlock(&mutex2);
 }
 
 void delete_account_handler(char *query)
@@ -399,13 +489,13 @@ void delete_account_handler(char *query)
 
 }
 
-void add_account_handler(char *buffer)
+void add_account_handler(char *query)
 {
     
     char * buffer_copy_login = (char *) malloc(140);
     char * buffer_copy_account = (char *) malloc(140);
 
-    char *token = strtok(buffer," ");
+    char *token = strtok(query," ");
 
     token = strtok(NULL, " "); //Username
     strcat(buffer_copy_login, token); 
