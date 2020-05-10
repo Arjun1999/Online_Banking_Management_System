@@ -20,7 +20,9 @@
 #define RECV_USERBUFFER_SIZE 1024
 
 pthread_mutex_t mutex1 = PTHREAD_MUTEX_INITIALIZER;
-// pthread_mutex_t mutex2 = PTHREAD_MUTEX_INITIALIZER;
+pthread_mutex_t mutex2 = PTHREAD_MUTEX_INITIALIZER;
+pthread_mutex_t mutex3 = PTHREAD_MUTEX_INITIALIZER;
+
 // #include <netinet/ip.h>
 
 // Send and Receive protocols to take care of the message boundary problem.
@@ -109,7 +111,7 @@ int deposit_withdraw_handler(int account_id, int operation, int amount)
             printf("%s\n", buffer);
             char buffer_copy[140];
             // printf("YOLO\n");
-            char *token = strtok(buffer, " "); //account ID
+            char *token = strtok(buffer, " "); //Account ID
             strcpy(buffer_copy, token);
             strcat(buffer_copy, " ");
             // printf("YOLO\n");
@@ -181,15 +183,15 @@ int deposit_withdraw_handler(int account_id, int operation, int amount)
 
         i += 1;
     }
-    printf("WTF\n");
+    // printf("WTF\n");
     close(fd1);
     close(fd2);
     
     int rem = remove("AccountsInformation.txt");
-    printf("Remove : %d\n", rem);
+    // printf("Remove : %d\n", rem);
     int ren = rename("AccountsInformationDuplicate.txt", "AccountsInformation.txt");
-    printf("Rename : %d\n", ren);
-    printf("WTAF\n");
+    // printf("Rename : %d\n", ren);
+    // printf("WTAF\n");
     pthread_mutex_unlock(&mutex1);
     
     return retval;
@@ -257,6 +259,428 @@ int check_balance(int account_id)
 
     // pthread_mutex_unlock(&mutex1);
     return retval;
+}
+
+void search_account_handler(char *buffer)
+{
+
+}
+
+void modify_account_handler(char *buffer)
+{
+
+}
+
+void delete_account_handler(char *buffer)
+{
+
+}
+
+void add_account_handler(char *buffer)
+{
+    
+    char * buffer_copy_login = (char *) malloc(140);
+    char * buffer_copy_account = (char *) malloc(140);
+
+    char *token = strtok(buffer," ");
+
+    token = strtok(NULL, " "); //Username
+    strcat(buffer_copy_login, token); 
+    strcat(buffer_copy_login, " ");
+
+    token = strtok(NULL, " ");
+    strcat(buffer_copy_login, token); //Password
+    strcat(buffer_copy_login, " ");
+
+    token = strtok(NULL, " ");
+    strcat(buffer_copy_login, token); //User Type
+    strcat(buffer_copy_login, " ");
+
+    token = strtok(NULL, " ");
+    strcat(buffer_copy_login, token); //Account Number
+    strcat(buffer_copy_login, "\n");
+
+    strcat(buffer_copy_account, token);
+    strcat(buffer_copy_account, " ");
+
+    pthread_mutex_lock(&mutex2);
+
+    int fd1 = open("LoginInformation.txt", O_WRONLY, 0);
+    // printf("fd1 : %d\n", fd1);
+    if (fd1 < 0)
+    {
+        perror("Could not open the file containing login information.\n");
+        // return NULL;
+    }
+
+    lseek(fd1, 0L, SEEK_END);
+    write(fd1, buffer_copy_login, strlen(buffer_copy_login));
+
+    pthread_mutex_unlock(&mutex2);
+
+    token = strtok(NULL, " "); //First Name
+    strcat(buffer_copy_account, token);
+    strcat(buffer_copy_account, " ");
+
+    token = strtok(NULL, " "); //Last Name
+    strcat(buffer_copy_account, token);
+    strcat(buffer_copy_account, " ");
+
+    token = strtok(NULL, " "); //Account Type
+    strcat(buffer_copy_account, token);
+    strcat(buffer_copy_account, " ");
+
+    token = strtok(NULL, " "); //Initial Deposit
+    strcat(buffer_copy_account, token);
+    strcat(buffer_copy_account, "\n");
+
+    pthread_mutex_lock(&mutex3);
+
+    int fd2 = open("AccountsInformation.txt", O_WRONLY, 0);
+    // printf("fd1 : %d\n", fd1);
+    if (fd2 < 0)
+    {
+        perror("Could not open the file containing accounts information.\n");
+        // return NULL;
+    }
+
+    lseek(fd2, 0L, SEEK_END);
+    write(fd2, buffer_copy_account, strlen(buffer_copy_account));
+
+    pthread_mutex_unlock(&mutex3);
+
+}
+
+int individual_handler(int request_type)
+{   
+    int fd1;
+    int fd2;
+    int i;
+    char * buffer = (char *) malloc(140);
+
+    int rem;
+    int ren;
+
+    int found = 0;
+    int retval;
+
+    switch(request_type)
+    {
+        case 1:
+            
+            pthread_mutex_lock(&mutex1);
+
+            fd1 = open("AdminRequests.txt", O_RDONLY, 0);
+            printf("fd1 : %d\n", fd1);
+            if (fd1 < 0)
+            {
+                perror("Could not open the file containing query requests to Admin.\n");
+                // return NULL;
+            }
+
+            fd2 = open("AdminRequestsDuplicate.txt", O_WRONLY | O_CREAT, 0777);
+            printf("fd2 : %d\n", fd2);
+            if (fd2 < 0)
+            {
+                perror("Could not create duplicate file containing query requests to Admin.\n");
+                // return NULL;
+            }
+
+            i = 0;
+            while (read(fd1, &buffer[i], 1) == 1)
+            {
+                if (buffer[i] == '\n' || buffer[i] == 0x0)
+                {
+                    buffer[i] = 0;
+                    
+                    if (buffer[0] == 'A')
+                    {
+                        found += 1;
+                        add_account_handler(buffer);
+                    }
+                    else
+                    {
+                        strcat(buffer,"\n");
+                        write(fd2, buffer, strlen(buffer));
+                    }
+                    
+                    i = 0;
+                    continue;
+                }
+                i++;
+            }
+
+            if (found == 0)
+            {
+                retval = 0;
+            }
+            else
+            {
+                retval = 1;
+            }
+            
+            close(fd1);
+            close(fd2);
+
+            rem = remove("AdminRequests.txt");
+            printf("Remove : %d\n", rem);
+            ren = rename("AdminRequestsDuplicate.txt", "AdminRequests.txt");
+            printf("Rename : %d\n", ren);
+            // printf("WTAF\n");
+            pthread_mutex_unlock(&mutex1);
+            break;
+    
+        case 2:
+            pthread_mutex_lock(&mutex1);
+
+            fd1 = open("AdminRequests.txt", O_RDONLY, 0);
+            // printf("fd1 : %d\n", fd1);
+            if (fd1 < 0)
+            {
+                perror("Could not open the file containing query requests to Admin.\n");
+                // return NULL;
+            }
+
+            fd2 = open("AdminRequestsDuplicate.txt", O_WRONLY | O_CREAT);
+            // printf("fd2 : %d\n", fd2);
+            if (fd2 < 0)
+            {
+                perror("Could not create duplicate file containing query requests to Admin.\n");
+                // return NULL;
+            }
+
+            i = 0;
+            while (read(fd1, &buffer[i], 1) == 1)
+            {
+                if (buffer[i] == '\n' || buffer[i] == 0x0)
+                {
+                    buffer[i] = 0;
+
+                    if (buffer[0] == 'D')
+                    {
+                        found += 1;
+                        delete_account_handler(buffer);
+                    }
+                    else
+                    {
+                        strcat(buffer, "\n");
+                        write(fd2, buffer, strlen(buffer));
+                    }
+
+                    i = 0;
+                    continue;
+                }
+                i++;
+            }
+
+            if (found == 0)
+            {
+                retval = 0;
+            }
+            else
+            {
+                retval = 1;
+            }
+            
+            close(fd1);
+            close(fd2);
+
+            rem = remove("AdminRequests.txt");
+            // printf("Remove : %d\n", rem);
+            ren = rename("AdminRequestsDuplicate.txt", "AdminRequests.txt");
+            // printf("Rename : %d\n", ren);
+            // printf("WTAF\n");
+            pthread_mutex_unlock(&mutex1);
+            break;
+
+        case 3:
+            pthread_mutex_lock(&mutex1);
+
+            fd1 = open("AdminRequests.txt", O_RDONLY, 0);
+            // printf("fd1 : %d\n", fd1);
+            if (fd1 < 0)
+            {
+                perror("Could not open the file containing query requests to Admin.\n");
+                // return NULL;
+            }
+
+            fd2 = open("AdminRequestsDuplicate.txt", O_WRONLY | O_CREAT);
+            // printf("fd2 : %d\n", fd2);
+            if (fd2 < 0)
+            {
+                perror("Could not create duplicate file containing query requests to Admin.\n");
+                // return NULL;
+            }
+
+            i = 0;
+            while (read(fd1, &buffer[i], 1) == 1)
+            {
+                if (buffer[i] == '\n' || buffer[i] == 0x0)
+                {
+                    buffer[i] = 0;
+
+                    if (buffer[0] == 'M')
+                    {
+                        found += 1;
+                        modify_account_handler(buffer);
+                    }
+                    else
+                    {
+                        strcat(buffer, "\n");
+                        write(fd2, buffer, strlen(buffer));
+                    }
+
+                    i = 0;
+                    continue;
+                }
+                i++;
+            }
+            
+            if (found == 0)
+            {
+                retval = 0;
+            }
+            else
+            {
+                retval = 1;
+            }
+            close(fd1);
+            close(fd2);
+
+            rem = remove("AdminRequests.txt");
+            // printf("Remove : %d\n", rem);
+            ren = rename("AdminRequestsDuplicate.txt", "AdminRequests.txt");
+            // printf("Rename : %d\n", ren);
+            // printf("WTAF\n");
+            pthread_mutex_unlock(&mutex1);
+            break;
+
+        case 4:
+            pthread_mutex_lock(&mutex1);
+
+            fd1 = open("AdminRequests.txt", O_RDONLY, 0);
+            // printf("fd1 : %d\n", fd1);
+            if (fd1 < 0)
+            {
+                perror("Could not open the file containing query requests to Admin.\n");
+                // return NULL;
+            }
+
+            fd2 = open("AdminRequestsDuplicate.txt", O_WRONLY | O_CREAT, 0777);
+            // printf("fd2 : %d\n", fd2);
+            if (fd2 < 0)
+            {
+                perror("Could not create duplicate file containing query requests to Admin.\n");
+                // return NULL;
+            }
+
+            i = 0;
+            while (read(fd1, &buffer[i], 1) == 1)
+            {
+                if (buffer[i] == '\n' || buffer[i] == 0x0)
+                {
+                    buffer[i] = 0;
+
+                    if (buffer[0] == 'S')
+                    {
+                        found += 1;
+                        search_account_handler(buffer);
+                    }
+                    else
+                    {
+                        strcat(buffer, "\n");
+                        write(fd2, buffer, strlen(buffer));
+                    }
+
+                    i = 0;
+                    continue;
+                }
+                i++;
+            }
+            
+            if (found == 0)
+            {
+                retval = 0;
+            }
+            else
+            {
+                retval = 1;
+            }
+            close(fd1);
+            close(fd2);
+
+            rem = remove("AdminRequests.txt");
+            // printf("Remove : %d\n", rem);
+            ren = rename("AdminRequestsDuplicate.txt", "AdminRequests.txt");
+            // printf("Rename : %d\n", ren);
+            // printf("WTAF\n");
+            pthread_mutex_unlock(&mutex1);
+            break;
+    }
+
+    return retval;
+}
+
+void admin_handler(char *username, char *password, int unique_account_id, int clientfd)
+{
+    int track_session = 1;
+    int retval;
+    send_to_client(clientfd, "Do you want to:\n1. Execute Pending Add Queries\n2. Execute Pending Delete Queries\n3. Execute Pending Modify Queries\n4. Execute Pending Search Queries\n5. Execute All Queries\n6. Exit\nPlease enter number of your choice: \n\n");
+
+    char *response = (char *)malloc(140);
+    while (track_session == 1)
+    {
+        int choice;
+        response = receive_from_client(clientfd);
+        choice = atoi(response);
+
+        switch (choice)
+        {
+            case 1:
+            case 2:
+            case 3:
+            case 4:
+                retval = individual_handler(choice);
+                if(retval == 1)
+                {
+                    send_to_client(clientfd, "Queries successfully executed\n");
+                }
+                else
+                {
+                    if(choice == 1)
+                    {
+                        send_to_client(clientfd, "No pending Add queries\n");
+                    }
+                    
+                    else if (choice == 2)
+                    {
+                        send_to_client(clientfd, "No pending Delete queries\n");
+                    }
+
+                    if (choice == 3)
+                    {
+                        send_to_client(clientfd, "No pending Modify queries\n");
+                    }
+
+                    if (choice == 4)
+                    {
+                        send_to_client(clientfd, "No pending Search queries\n");
+                    }
+                }
+                
+                break;
+            case 5:
+                individual_handler(1);
+                individual_handler(2);
+                individual_handler(3);
+                individual_handler(4);
+                send_to_client(clientfd, "All queries have been executed\n");
+                break;
+            case 6:
+                track_session = 0;
+                break;
+        }
+    }
 }
 
 void user_handler(char *username, char* password, int unique_account_id, int clientfd)
@@ -391,7 +815,7 @@ void user_handler(char *username, char* password, int unique_account_id, int cli
                     if(strcmp(new_password, confirm_password) == 0)
                     {
                         pthread_mutex_lock(&mutex1);
-                        query_fd = open("AdminRequests.txt", O_WRONLY, 0);
+                        query_fd = open("AdminRequests.txt", O_WRONLY | O_CREAT);
                         if(query_fd < 0)
                         {
                             printf("Could not open the file containing requests to Admin.\n");
@@ -437,7 +861,7 @@ void user_handler(char *username, char* password, int unique_account_id, int cli
                 }
 
                 pthread_mutex_lock(&mutex1);
-                query_fd = open("AdminRequests.txt", O_WRONLY, 0);
+                query_fd = open("AdminRequests.txt", O_WRONLY | O_CREAT);
                 if (query_fd < 0)
                 {
                     printf("Could not open the file containing requests to Admin.\n");
@@ -467,7 +891,7 @@ void user_handler(char *username, char* password, int unique_account_id, int cli
                 }
 
                 pthread_mutex_lock(&mutex1);
-                query_fd = open("AdminRequests.txt", O_WRONLY, 0);
+                query_fd = open("AdminRequests.txt", O_WRONLY | O_CREAT);
                 if (query_fd < 0)
                 {
                     printf("Could not open the file containing requests to Admin.\n");
@@ -489,11 +913,6 @@ void user_handler(char *username, char* password, int unique_account_id, int cli
                 
         }
     }
-}
-
-void admin_user_handler(char *username, char *password, int unique_account_id, int clientfd)
-{
-
 }
 
 int* authenticate(char *username, char *password)
@@ -707,12 +1126,15 @@ void *client_handler(void *a )
             send_to_client(clientfd, "Enter initial deposit: \n");
             new_initial_dep = receive_from_client(clientfd);
 
+            printf("Before lock\n");
             pthread_mutex_lock(&mutex1);
-            int query_fd = open("AdminRequests.txt", O_WRONLY, 0);
+            printf("After lock\n");
+            int query_fd = open("AdminRequests.txt", O_WRONLY | O_CREAT, 0777);
             if (query_fd < 0)
             {
                 printf("Could not open the file containing requests to Admin.\n");
             }
+            printf("%d\n", query_fd);
             char *query_buff = (char *)malloc(140);
             strcpy(query_buff, "Add ");
             strcat(query_buff, new_username);
@@ -731,6 +1153,8 @@ void *client_handler(void *a )
             strcat(query_buff, " ");
             strcat(query_buff, new_initial_dep);
             strcat(query_buff, "\n");
+
+            printf("%s\n", query_buff);
 
             lseek(query_fd, 0L, SEEK_END);
             write(query_fd, query_buff, strlen(query_buff));
@@ -764,7 +1188,7 @@ void *client_handler(void *a )
 
         case 2:
             printf("Admin User\n");
-            admin_user_handler(username, password, unique_account_id, clientfd);
+            admin_handler(username, password, unique_account_id, clientfd);
             break;
 
         case 3:
@@ -843,7 +1267,8 @@ int main(int argc, char **argv)
     printf("Listening for clients\n");
 
     pthread_mutex_init(&mutex1, NULL);
-    // pthread_mutex_init(&mutex2, NULL);
+    pthread_mutex_init(&mutex2, NULL);
+    pthread_mutex_init(&mutex3, NULL);
 
     pthread_t thread_ids[10];
     
