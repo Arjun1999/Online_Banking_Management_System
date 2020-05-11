@@ -891,6 +891,11 @@ void admin_handler(char *username, char *password, int unique_account_id, int cl
     send_to_client(clientfd, "Do you want to:\n1. Execute Pending Add Queries\n2. Execute Pending Delete Queries\n3. Execute Pending Modify Queries\n4. Execute Pending Search Queries\n5. Execute All Queries\n6. Exit\nPlease enter number of your choice: \n\n");
 
     char *response = (char *)malloc(140);
+    
+    char *acc_id = (char *)malloc(140);
+    char *search_response = (char *)malloc(140);
+    char *combined_response = (char *)malloc(140);
+    
     while (track_session == 1)
     {
         int choice;
@@ -902,7 +907,6 @@ void admin_handler(char *username, char *password, int unique_account_id, int cl
             case 1:
             case 2:
             case 3:
-            case 4:
                 retval = individual_handler(choice);
                 if(retval == 1)
                 {
@@ -920,24 +924,59 @@ void admin_handler(char *username, char *password, int unique_account_id, int cl
                         send_to_client(clientfd, "No pending Delete queries\n");
                     }
 
-                    else if (choice == 3)
+                    else 
                     {
                         send_to_client(clientfd, "No pending Modify queries\n");
                     }
 
-                    else
-                    {
-                        send_to_client(clientfd, "No pending Search queries\n");
-                    }
+                    // else
+                    // {
+                    //     send_to_client(clientfd, "No pending Search queries\n");
+                    // }
                 }
                 
                 break;
+            case 4:
+                send_to_client(clientfd, "Enter the account number whose details you want to know: \n");
+                acc_id = receive_from_client(clientfd);
+                search_response = search_account_handler(acc_id);
+                send_to_client(clientfd, search_response);
+                break;
+                
             case 5:
-                individual_handler(1);
-                individual_handler(2);
-                individual_handler(3);
-                individual_handler(4);
-                send_to_client(clientfd, "All queries have been executed\n");
+                retval = individual_handler(1);
+                if(retval == 1)
+                {
+                    strcpy(combined_response, "All Add Queries Executed\n");
+                }
+                else
+                {
+                    strcpy(combined_response, "No Add Queries...\n");
+                }
+                
+                retval = individual_handler(2);
+                if (retval == 1)
+                {
+                    strcat(combined_response, "All Delete Queries Executed\n");
+                }
+                else
+                {
+                    strcat(combined_response, "No Delete Queries...\n");
+                }
+                
+                retval = individual_handler(3);
+                if (retval == 1)
+                {
+                    strcat(combined_response, "All Modify Queries Executed\n");
+                }
+                else
+                {
+                    strcat(combined_response, "No Modify Queries...\n");
+                }
+                strcat(combined_response, "\nAll queries have been executed.\n");
+
+                // individual_handler(4);
+                send_to_client(clientfd, combined_response);
                 break;
             case 6:
                 track_session = 0;
