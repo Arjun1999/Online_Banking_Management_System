@@ -1,7 +1,8 @@
 1 Amogh Johri Current 1000
-2 Arjun Verma Savings 500
+2 Arjun Verma Savings 1900
 3 Arjun Pili Savings 5000
 9379 Phani Tirthala Current 700
 177 R Arvind Current 300
+2 Dummy Name Savings 1900
 2438 Rathin Bhargava Savings 700
 8453 Brahma Kulkarni Savings 1000

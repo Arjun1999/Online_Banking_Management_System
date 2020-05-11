@@ -94,7 +94,7 @@ int deposit_withdraw_handler(int account_id, int operation, int amount)
         // return NULL;
     }
 
-    fd2 = open("AccountsInformationDuplicate.txt", O_WRONLY | O_CREAT);
+    fd2 = open("AccountsInformationDuplicate.txt", O_WRONLY | O_CREAT, 0777);
     printf("fd2 : %d\n", fd2);
     if (fd2 < 0)
     {
@@ -261,9 +261,59 @@ int check_balance(int account_id)
     return retval;
 }
 
-void search_account_handler(char *query)
+char * search_account_handler(char *query)
 {
+    char *send_response  = (char *) malloc(140);
+    char *account_buffer = (char *) malloc(140);
+    char *account_buffer_copy = (char *) malloc(140);
+    int found = 0;
 
+    strcpy(send_response, "|| Account Number || First Name || Last Name || Account Type || Balance ||\n\n");
+    
+    pthread_mutex_lock(&mutex1);
+
+    int fd1 = open("AccountsInformation.txt", O_RDONLY, 0);
+    if( fd1 < 0)
+    {
+        perror("Could not open file containing accounts information.\n");
+    }
+
+    int i = 0;
+    while(read(fd1, &account_buffer[i], 1) == 1)
+    {
+        if (account_buffer[i] == '\n' || account_buffer[i] == 0x0)
+        {
+            account_buffer[i] = 0;
+            strcpy(account_buffer_copy, account_buffer);
+            
+            char * token = strtok(account_buffer, " ");
+            if(strcmp(token, query) == 0)
+            {
+                found += 1;
+                strcat(send_response, account_buffer_copy);
+                strcat(send_response, "\n");
+            }
+            
+            i = 0;
+            continue;
+
+        }
+
+        i += 1;
+    }
+
+    pthread_mutex_unlock(&mutex1);
+
+    if(found == 1)
+    {
+        return send_response;
+    }
+    else
+    {
+        strcat(send_response, "\nThe above are the details of the joint account holders\n\n");
+        return send_response;
+    }
+    
 }
 
 void modify_account_handler(char *query)
@@ -870,12 +920,12 @@ void admin_handler(char *username, char *password, int unique_account_id, int cl
                         send_to_client(clientfd, "No pending Delete queries\n");
                     }
 
-                    if (choice == 3)
+                    else if (choice == 3)
                     {
                         send_to_client(clientfd, "No pending Modify queries\n");
                     }
 
-                    if (choice == 4)
+                    else
                     {
                         send_to_client(clientfd, "No pending Search queries\n");
                     }
@@ -924,6 +974,8 @@ void user_handler(char *username, char* password, int unique_account_id, int cli
 
         int query_fd;
         char *query_buff = (char *)malloc(140);
+
+        char *search_response = (char *)malloc(140);
         switch (choice)
         {
             case 1:
@@ -1028,7 +1080,7 @@ void user_handler(char *username, char* password, int unique_account_id, int cli
                     if(strcmp(new_password, confirm_password) == 0)
                     {
                         pthread_mutex_lock(&mutex1);
-                        query_fd = open("AdminRequests.txt", O_WRONLY | O_CREAT);
+                        query_fd = open("AdminRequests.txt", O_WRONLY | O_CREAT, 0777);
                         if(query_fd < 0)
                         {
                             printf("Could not open the file containing requests to Admin.\n");
@@ -1072,21 +1124,25 @@ void user_handler(char *username, char* password, int unique_account_id, int cli
                     send_to_client(clientfd, "Incorrect Account ID!\n");
                     break;
                 }
-
-                pthread_mutex_lock(&mutex1);
-                query_fd = open("AdminRequests.txt", O_WRONLY | O_CREAT);
-                if (query_fd < 0)
+                else
                 {
-                    printf("Could not open the file containing requests to Admin.\n");
+                    search_response = search_account_handler(acc_id);
+                    send_to_client(clientfd, search_response);
                 }
-                strcpy(query_buff, "Search ");
-                strcat(query_buff, acc_id);
-                strcat(query_buff, "\n");
+                // pthread_mutex_lock(&mutex1);
+                // query_fd = open("AdminRequests.txt", O_WRONLY | O_CREAT);
+                // if (query_fd < 0)
+                // {
+                //     printf("Could not open the file containing requests to Admin.\n");
+                // }
+                // strcpy(query_buff, "Search ");
+                // strcat(query_buff, acc_id);
+                // strcat(query_buff, "\n");
 
-                lseek(query_fd, 0L, SEEK_END);
-                write(query_fd, query_buff, strlen(query_buff));
-                pthread_mutex_unlock(&mutex1);
-                send_to_client(clientfd, "Your query has been successfully added to the query list for the Admin to be reviewed.\n");
+                // lseek(query_fd, 0L, SEEK_END);
+                // write(query_fd, query_buff, strlen(query_buff));
+                // pthread_mutex_unlock(&mutex1);
+                // send_to_client(clientfd, "Your query has been successfully added to the query list for the Admin to be reviewed.\n");
                 break;
 
             case 6:
@@ -1104,7 +1160,7 @@ void user_handler(char *username, char* password, int unique_account_id, int cli
                 }
 
                 pthread_mutex_lock(&mutex1);
-                query_fd = open("AdminRequests.txt", O_WRONLY | O_CREAT);
+                query_fd = open("AdminRequests.txt", O_WRONLY | O_CREAT, 0777);
                 if (query_fd < 0)
                 {
                     printf("Could not open the file containing requests to Admin.\n");
