@@ -3,5 +3,6 @@
 3 Arjun Pili Savings 5000
 177 R Arvind Current 300
 2 Dummy Name Savings 1900
-2438 Rathin Bhargava Savings 700
+2438 Rathin Bhargava Savings 1100
 8453 Brahma Kulkarni Savings 1000
+2438 Ram Bharti Savings 1100

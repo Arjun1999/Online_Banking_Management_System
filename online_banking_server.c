@@ -481,12 +481,12 @@ void delete_account_handler(char *query)
 
     pthread_mutex_unlock(&mutex3);
     
-    // printf("Before mutex2\n");
+    printf("Before mutex2\n");
     
     pthread_mutex_lock(&mutex2);
 
     int fd3 = open("LoginInformation.txt", O_RDONLY, 0);
-    // printf("fd3 : %d\n", fd3);
+    printf("fd3 : %d\n", fd3);
     if (fd3 < 0)
     {
         perror("Could not open the file containing login information.\n");
@@ -494,7 +494,7 @@ void delete_account_handler(char *query)
     }
 
     int fd4 = open("LoginInformationDuplicate.txt", O_WRONLY | O_CREAT, 0777);
-    // printf("fd4 : %d\n", fd4);
+    printf("fd4 : %d\n", fd4);
     if (fd4 < 0)
     {
         perror("Could not open the file containing duplicate login information.\n");
@@ -528,19 +528,26 @@ void delete_account_handler(char *query)
         i += 1;
     }
     
+    printf("Begore fd3 close\n");
     close(fd3);
+    printf("After fd3 close\n");
     close(fd4);
+    printf("Begore fd4 close\n");
 
-    rem = remove("LoginInformation.txt");
+    int rem1 = remove("LoginInformation.txt");
+    printf("After remove : %d\n", rem1);
     // printf("Remove : %d\n", rem);
-    ren = rename("LoginInformationDuplicate.txt", "LoginInformation.txt");
+    int ren1 = rename("LoginInformationDuplicate.txt", "LoginInformation.txt");
+    printf("After rename : %d\n", ren1);
     // printf("Rename : %d\n", ren);
     pthread_mutex_unlock(&mutex2);
 
 }
 
 void add_account_handler(char *query)
-{
+{   
+    int acc_number;
+    int amount;
     
     char * buffer_copy_login = (char *) malloc(140);
     char * buffer_copy_account = (char *) malloc(140);
@@ -560,6 +567,7 @@ void add_account_handler(char *query)
     strcat(buffer_copy_login, " ");
 
     token = strtok(NULL, " ");
+    acc_number = atoi(token);
     strcat(buffer_copy_login, token); //Account Number
     strcat(buffer_copy_login, "\n");
 
@@ -594,6 +602,7 @@ void add_account_handler(char *query)
     strcat(buffer_copy_account, " ");
 
     token = strtok(NULL, " "); //Initial Deposit
+    amount = atoi(token);
     strcat(buffer_copy_account, token);
     strcat(buffer_copy_account, "\n");
 
@@ -611,7 +620,7 @@ void add_account_handler(char *query)
     write(fd2, buffer_copy_account, strlen(buffer_copy_account));
 
     pthread_mutex_unlock(&mutex3);
-
+    // deposit_withdraw_handler(acc_number, 1, amount);
 }
 
 int individual_handler(int request_type)
@@ -670,7 +679,7 @@ int individual_handler(int request_type)
                     i = 0;
                     continue;
                 }
-                i++;
+                i+=1;
             }
 
             if (found == 0)
@@ -733,7 +742,7 @@ int individual_handler(int request_type)
                     i = 0;
                     continue;
                 }
-                i++;
+                i+=1;
             }
 
             if (found == 0)
@@ -748,11 +757,12 @@ int individual_handler(int request_type)
             close(fd1);
             close(fd2);
 
+            printf("WTF\n");
             rem = remove("AdminRequests.txt");
-            // printf("Remove : %d\n", rem);
+            printf("Remove : %d\n", rem);
             ren = rename("AdminRequestsDuplicate.txt", "AdminRequests.txt");
-            // printf("Rename : %d\n", ren);
-            // printf("WTAF\n");
+            printf("Rename : %d\n", ren);
+            printf("WTAF\n");
             pthread_mutex_unlock(&mutex1);
             break;
 
@@ -796,7 +806,7 @@ int individual_handler(int request_type)
                     i = 0;
                     continue;
                 }
-                i++;
+                i+=1;
             }
             
             if (found == 0)
@@ -811,9 +821,9 @@ int individual_handler(int request_type)
             close(fd2);
 
             rem = remove("AdminRequests.txt");
-            // printf("Remove : %d\n", rem);
+            printf("Remove : %d\n", rem);
             ren = rename("AdminRequestsDuplicate.txt", "AdminRequests.txt");
-            // printf("Rename : %d\n", ren);
+            printf("Rename : %d\n", ren);
             // printf("WTAF\n");
             pthread_mutex_unlock(&mutex1);
             break;
@@ -858,7 +868,7 @@ int individual_handler(int request_type)
                     i = 0;
                     continue;
                 }
-                i++;
+                i+=1;
             }
             
             if (found == 0)
@@ -888,7 +898,7 @@ void admin_handler(char *username, char *password, int unique_account_id, int cl
 {
     int track_session = 1;
     int retval;
-    send_to_client(clientfd, "Do you want to:\n1. Execute Pending Add Queries\n2. Execute Pending Delete Queries\n3. Execute Pending Modify Queries\n4. Execute Pending Search Queries\n5. Execute All Queries\n6. Exit\nPlease enter number of your choice: \n\n");
+    send_to_client(clientfd, "Do you want to:\n1. Execute Pending Add Queries\n2. Execute Pending Delete Queries\n3. Execute Pending Modify Queries\n4. Search for a specific account details\n5. Execute All Queries\n6. Exit\nPlease enter number of your choice: \n\n");
 
     char *response = (char *)malloc(140);
     
@@ -1410,8 +1420,14 @@ void *client_handler(void *a )
 
             if(strcmp(new_user_type,"Joint") == 0)
             {
-                send_to_client(clientfd, "Enter the joint account number: \n");
+                send_to_client(clientfd, "Details regarding the exisiting account...\n\nEnter the Joint Account Number: \n");
                 new_acc_no = receive_from_client(clientfd);
+
+                send_to_client(clientfd, "Enter Joint Account Type (Savings/Current): \n");
+                new_acc_type = receive_from_client(clientfd);
+
+                send_to_client(clientfd, "Enter Balance in the Joint Account: \n");
+                new_initial_dep = receive_from_client(clientfd);
             }
 
             else
@@ -1419,20 +1435,21 @@ void *client_handler(void *a )
                 srand(time(NULL));
                 new_acc_number = rand() % 10000 + 1;
                 sprintf(new_acc_no, "%d", new_acc_number);
+           
+                send_to_client(clientfd, "Enter Account type (Savings/Current): \n");
+                new_acc_type = receive_from_client(clientfd);
+            
+                send_to_client(clientfd, "Enter Initial Deposit: \n");
+                new_initial_dep = receive_from_client(clientfd);
             }
             
             
-            send_to_client(clientfd, "Enter First Name: \n");
+            send_to_client(clientfd, "Enter your First Name: \n");
             new_fname = receive_from_client(clientfd);
 
-            send_to_client(clientfd, "Enter Last Name: \n");
+            send_to_client(clientfd, "Enter your Last Name: \n");
             new_lname = receive_from_client(clientfd);
 
-            send_to_client(clientfd, "Enter Account type (Savings/Current): \n");
-            new_acc_type = receive_from_client(clientfd);
-            
-            send_to_client(clientfd, "Enter initial deposit: \n");
-            new_initial_dep = receive_from_client(clientfd);
 
             printf("Before lock\n");
             pthread_mutex_lock(&mutex1);
@@ -1467,7 +1484,9 @@ void *client_handler(void *a )
             lseek(query_fd, 0L, SEEK_END);
             write(query_fd, query_buff, strlen(query_buff));
             pthread_mutex_unlock(&mutex1);
-            send_to_client(clientfd, "Your query has been successfully added to the query list for the Admin to be reviewed.\n");
+
+            strcat(new_acc_no, " is your unique account number for future transactions.\nYour account will be activated within 2 working days.\nThank you for opening an account with us!\n\n");
+            send_to_client(clientfd, new_acc_no);
         }
         else
         {
