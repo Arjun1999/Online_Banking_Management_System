@@ -26,21 +26,21 @@ II. Features implemented in the project :
 
 3. After a Normal/Joint User logs in, they are provided with the following menu :
 
--     Deposit :           Deposit  certain amount to your account.
--    Withdraw :          Withdraw certain amount from your account.
+-   Deposit :           Deposit  certain amount to your account.
+-   Withdraw :          Withdraw certain amount from your account.
 -   Balance Enquiry :   Provides current balance in the account.
--    Password Change :   Generates a query for password change to be approved by Admin.
--     View Details :      View details of user's account number specified by him/her.
--    Delete Account :    Generates a query for deletion of account to be approved by Admin.
+-   Password Change :   Generates a query for password change to be approved by Admin.
+-   View Details :      View details of user's account number specified by him/her.
+-   Delete Account :    Generates a query for deletion of account to be approved by Admin.
 -   Exit :              Exit the menu.
 
 4. After an Admin logs in , the following menu is provided :
 
--     Execute pending Add queries
--    Execute pending Delete queries.
+-   Execute pending Add queries
+-   Execute pending Delete queries.
 -   Execute pending Modify queries.
--    Search for a specifc account details.
--     Execute All Queries
--    Exit
+-   Search for a specifc account details.
+-   Execute All Queries
+-   Exit
 
 5. The concepts applied throughout the project include Socket Programming , Process Management, File Management, Mutex Locking, Multithreading and Inter Process Communication Mechanisms.
