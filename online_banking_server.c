@@ -72,6 +72,12 @@ char *receive_from_client(int clientfd)
     return receive_message;
 }
 
+void close_connection(int clientfd, char *closing_message)
+{
+    send_to_client(clientfd, closing_message);
+    shutdown(clientfd, SHUT_RDWR);
+}
+
 int deposit_withdraw_handler(int account_id, int operation, int amount)
 {
     int acc_id = account_id;
@@ -1146,18 +1152,19 @@ void user_handler(char *username, char* password, int unique_account_id, int cli
                         write(query_fd, query_buff, strlen(query_buff));
                         pthread_mutex_unlock(&mutex1);
                         send_to_client(clientfd, "Your query has been successfully added to the query list for the Admin to be reviewed.\n");
+                        // track_session = 0;
                         break;
                     }
                     else
                     {
-                        send_to_client(clientfd, "Incorrect confirmation password.\n");
+                        send_to_client(clientfd, "Incorrect confirmation password.\nPlease choose the 'Password Change' option and try again!\n");
                         break;
                     }
                     
                 }
                 else
                 {
-                    send_to_client(clientfd, "The password you have entered is incorrect.\n");
+                    send_to_client(clientfd, "The password you have entered is incorrect.\nPlease choose the 'Password Change' option and try again!\n");
                 }
                 
                 break;
@@ -1170,7 +1177,7 @@ void user_handler(char *username, char* password, int unique_account_id, int cli
                 account_id = atoi(acc_id);
                 if (account_id != unique_account_id)
                 {
-                    send_to_client(clientfd, "Incorrect Account ID!\n");
+                    send_to_client(clientfd, "Incorrect Account ID!\nPlease rechoose the option and try again\n");
                     break;
                 }
                 else
@@ -1222,6 +1229,7 @@ void user_handler(char *username, char* password, int unique_account_id, int cli
                 write(query_fd, query_buff, strlen(query_buff));
                 pthread_mutex_unlock(&mutex1);
                 send_to_client(clientfd, "Your query has been successfully added to the query list for the Admin to be reviewed.\n");
+                // track_session = 0;
                 break;
 
             case 7:
@@ -1415,7 +1423,7 @@ void *client_handler(void *a )
             send_to_client(clientfd, "Enter a password: \n");
             new_password = receive_from_client(clientfd);
 
-            send_to_client(clientfd, "Enter User type (Normal/Joint/Admin): \n");
+            send_to_client(clientfd, "Enter User type (Normal/Joint): \n");
             new_user_type = receive_from_client(clientfd);
 
             if(strcmp(new_user_type,"Joint") == 0)
@@ -1506,20 +1514,24 @@ void *client_handler(void *a )
         case 0:
             printf("Normal User\n");
             user_handler(username, password, unique_account_id, clientfd);
+            close_connection(clientfd, "Thank you for visiting us!\nPlease do come back again.\n");
             break;
 
         case 1:
             printf("Joint User\n");
             user_handler(username, password, unique_account_id, clientfd);
+            close_connection(clientfd, "Thank you for visiting us!\nPlease do come back again.\n");
             break;
 
         case 2:
             printf("Admin User\n");
             admin_handler(username, password, unique_account_id, clientfd);
+            close_connection(clientfd, "Thank you for visiting us!\nPlease do come back again.\n");
             break;
 
         case 3:
-            printf("You are unauthorized!\n");
+            close_connection(clientfd, "You are unauthorized!\n");
+            // printf("You are unauthorized!\n");
             break;
     }
     // while(1)
