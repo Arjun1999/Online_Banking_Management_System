@@ -59,6 +59,6 @@ II. Features implemented in the project :
 III. Running the code
 
 1. To compile the server code, run the command : gcc -o server online_banking_server.c -lpthread
-2. To execute, run the command : ./server <port_number> (For eg -> ./server 8000)
+2. To execute, run the command : ./server <port_number> (For eg : ./server 8000)
 3. To compile the client code, run the command : gcc -o client online_banking_client.c -lpthread
-4. To execute, run the command : ./client <port_number> (For eg -> ./client 8000)
+4. To execute, run the command : ./client <port_number> (For eg : ./client 8000)
