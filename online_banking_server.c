@@ -11,6 +11,7 @@
 #include <sys/sem.h>
 #include <sys/shm.h>
 #include <time.h>
+#include <sys/resource.h>
 #include <pthread.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
@@ -25,6 +26,12 @@ pthread_mutex_t mutex3 = PTHREAD_MUTEX_INITIALIZER;
 
 // #include <netinet/ip.h>
 
+// SIGINT handler.
+void signal_handler()
+{
+    printf("\nServer Shut Down.\n");
+    exit(1);
+}
 // Send and Receive protocols to take care of the message boundary problem.
 // Refer to "https://www.codeproject.com/Articles/11922/Solution-for-TCP-IP-client-socket-message-boundary"
 // to learn more about the message boundary problem.
@@ -273,9 +280,11 @@ char * search_account_handler(char *query)
     char *send_response  = (char *) malloc(140);
     char *account_buffer = (char *) malloc(140);
     char *account_buffer_copy = (char *) malloc(140);
+    char *not_found_response = (char *)malloc(140);
     int found = 0;
 
     strcpy(send_response, "|| Account Number || First Name || Last Name || Account Type || Balance ||\n\n");
+    strcpy(not_found_response, "The entered account number does not exist in the records.\n");
     
     pthread_mutex_lock(&mutex1);
 
@@ -310,8 +319,11 @@ char * search_account_handler(char *query)
     }
 
     pthread_mutex_unlock(&mutex1);
-
-    if(found == 1)
+    if(found == 0)
+    {
+        return not_found_response;
+    }
+    else if(found == 1)
     {
         return send_response;
     }
@@ -917,6 +929,12 @@ void admin_handler(char *username, char *password, int unique_account_id, int cl
     {
         int choice;
         response = receive_from_client(clientfd);
+        if (response == NULL)
+        {
+            printf("Client has disconnected abruptly.\n\n");
+            pthread_exit(NULL);
+        }
+
         choice = atoi(response);
 
         switch (choice)
@@ -956,6 +974,12 @@ void admin_handler(char *username, char *password, int unique_account_id, int cl
             case 4:
                 send_to_client(clientfd, "Enter the account number whose details you want to know: \n");
                 acc_id = receive_from_client(clientfd);
+                if (acc_id == NULL)
+                {
+                    printf("Client has disconnected abruptly.\n\n");
+                    pthread_exit(NULL);
+                }
+
                 search_response = search_account_handler(acc_id);
                 strcat(search_response, "\nIf you wish to perform some other operation , please enter the option number again : \n\n");
                     send_to_client(clientfd, search_response);
@@ -1013,6 +1037,12 @@ void user_handler(char *username, char* password, int unique_account_id, int cli
     {
         int choice;
         response = receive_from_client(clientfd);
+        if (response == NULL)
+        {
+            printf("Client has disconnected abruptly.\n\n");
+            pthread_exit(NULL);
+        }
+
         choice = atoi(response);
 
         int account_id;
@@ -1040,6 +1070,12 @@ void user_handler(char *username, char* password, int unique_account_id, int cli
                 
                 send_to_client(clientfd, "Enter your account number: \n");
                 acc_id = receive_from_client(clientfd);
+                if (acc_id == NULL)
+                {
+                    printf("Client has disconnected abruptly.\n\n");
+                    pthread_exit(NULL);
+                }
+
                 account_id = atoi(acc_id);
                 if(account_id != unique_account_id)
                 {
@@ -1050,6 +1086,12 @@ void user_handler(char *username, char* password, int unique_account_id, int cli
 
                 send_to_client(clientfd, "Enter amount to deposit: \n");
                 amt = receive_from_client(clientfd);
+                if (amt == NULL)
+                {
+                    printf("Client has disconnected abruptly.\n\n");
+                    pthread_exit(NULL);
+                }
+
                 amount = atoi(amt);
 
                 deposit_withdraw_ret = deposit_withdraw_handler(account_id, operation, amount);
@@ -1070,6 +1112,12 @@ void user_handler(char *username, char* password, int unique_account_id, int cli
 
                 send_to_client(clientfd, "Enter your account number: \n");
                 acc_id = receive_from_client(clientfd);
+                if (acc_id == NULL)
+                {
+                    printf("Client has disconnected abruptly.\n\n");
+                    pthread_exit(NULL);
+                }
+
                 account_id = atoi(acc_id);
                 if (account_id != unique_account_id)
                 {
@@ -1080,6 +1128,12 @@ void user_handler(char *username, char* password, int unique_account_id, int cli
 
                 send_to_client(clientfd, "Enter amount to withdraw: \n");
                 amt = receive_from_client(clientfd);
+                if (amt == NULL)
+                {
+                    printf("Client has disconnected abruptly.\n\n");
+                    pthread_exit(NULL);
+                }
+
                 amount = atoi(amt);
 
                 deposit_withdraw_ret = deposit_withdraw_handler(account_id, operation, amount);
@@ -1100,6 +1154,12 @@ void user_handler(char *username, char* password, int unique_account_id, int cli
 
                 send_to_client(clientfd, "Enter your account number: \n");
                 acc_id = receive_from_client(clientfd);
+                if (acc_id == NULL)
+                {
+                    printf("Client has disconnected abruptly.\n\n");
+                    pthread_exit(NULL);
+                }
+
                 account_id = atoi(acc_id);
                 if (account_id != unique_account_id)
                 {
@@ -1127,6 +1187,11 @@ void user_handler(char *username, char* password, int unique_account_id, int cli
 
                 send_to_client(clientfd, "Enter old password: \n");
                 old_password = receive_from_client(clientfd);
+                if (old_password == NULL)
+                {
+                    printf("Client has disconnected abruptly.\n\n");
+                    pthread_exit(NULL);
+                }
 
                 if(strcmp(old_password, password) == 0)
                 {
@@ -1134,10 +1199,20 @@ void user_handler(char *username, char* password, int unique_account_id, int cli
                 
                     send_to_client(clientfd, "Enter new password: \n");
                     new_password = receive_from_client(clientfd);
+                    if (new_password == NULL)
+                    {
+                        printf("Client has disconnected abruptly.\n\n");
+                        pthread_exit(NULL);
+                    }
 
                     send_to_client(clientfd, "Confirm new password: \n");
                     confirm_password = receive_from_client(clientfd);
-                    
+                    if (confirm_password == NULL)
+                    {
+                        printf("Client has disconnected abruptly.\n\n");
+                        pthread_exit(NULL);
+                    }
+
                     if(strcmp(new_password, confirm_password) == 0)
                     {
                         pthread_mutex_lock(&mutex1);
@@ -1181,6 +1256,12 @@ void user_handler(char *username, char* password, int unique_account_id, int cli
 
                 send_to_client(clientfd, "Enter your account number: \n");
                 acc_id = receive_from_client(clientfd);
+                if (acc_id == NULL)
+                {
+                    printf("Client has disconnected abruptly.\n\n");
+                    pthread_exit(NULL);
+                }
+
                 account_id = atoi(acc_id);
                 if (account_id != unique_account_id)
                 {
@@ -1215,6 +1296,12 @@ void user_handler(char *username, char* password, int unique_account_id, int cli
                 send_to_client(clientfd, "Enter your account number: \n");
                 char *acc_id = (char *)malloc(140);
                 acc_id = receive_from_client(clientfd);
+                if (acc_id == NULL)
+                {
+                    printf("Client has disconnected abruptly.\n\n");
+                    pthread_exit(NULL);
+                }
+
                 account_id = atoi(acc_id);
                 
                 if (account_id != unique_account_id)
@@ -1369,10 +1456,20 @@ void login_prompt(char *username, char *password, int clientfd)
 
     send_to_client(clientfd, "Enter Username : ");
     entered_username = receive_from_client(clientfd);
+    if(entered_username == NULL)
+    {
+        printf("Client has disconnected abruptly.\n\n");
+        pthread_exit(NULL);
+    }
     // printf("%s\n", entered_username);
 
     send_to_client(clientfd, "Enter Password : ");
     entered_password = receive_from_client(clientfd);
+    if (entered_password == NULL)
+    {
+        printf("Client has disconnected abruptly.\n\n");
+        pthread_exit(NULL);
+    }
     // printf("%s\n", entered_password);
     // Copying the entered_username and entered_password to passed arguments username and password
     int i = 0;
@@ -1413,7 +1510,12 @@ void *client_handler(void *a )
     {
         send_to_client(clientfd, "No such user exists!\n\nDo you wish to add a new account? (Y/N)\n");
         char * response = receive_from_client(clientfd);
-        
+        if (response == NULL)
+        {
+            printf("Client has disconnected abruptly.\n\n");
+            pthread_exit(NULL);
+        }
+
         if(strcmp(response, "Y") == 0)
         {
             char *new_username = (char *) malloc(140);
@@ -1428,23 +1530,53 @@ void *client_handler(void *a )
 
             send_to_client(clientfd, "Enter the previously entered username: \n");
             new_username = receive_from_client(clientfd);
+            if (new_username == NULL)
+            {
+                printf("Client has disconnected abruptly.\n\n");
+                pthread_exit(NULL);
+            }
 
             send_to_client(clientfd, "Enter a password: \n");
             new_password = receive_from_client(clientfd);
+            if (new_password == NULL)
+            {
+                printf("Client has disconnected abruptly.\n\n");
+                pthread_exit(NULL);
+            }
 
             send_to_client(clientfd, "Enter User type (Normal/Joint): \n");
             new_user_type = receive_from_client(clientfd);
+            if (new_user_type == NULL)
+            {
+                printf("Client has disconnected abruptly.\n\n");
+                pthread_exit(NULL);
+            }
 
             if(strcmp(new_user_type,"Joint") == 0)
             {
                 send_to_client(clientfd, "Details regarding the exisiting account...\n\nEnter the Joint Account Number: \n");
                 new_acc_no = receive_from_client(clientfd);
+                if (new_acc_no == NULL)
+                {
+                    printf("Client has disconnected abruptly.\n\n");
+                    pthread_exit(NULL);
+                }
 
                 send_to_client(clientfd, "Enter Joint Account Type (Savings/Current): \n");
                 new_acc_type = receive_from_client(clientfd);
+                if (new_acc_type == NULL)
+                {
+                    printf("Client has disconnected abruptly.\n\n");
+                    pthread_exit(NULL);
+                }
 
                 send_to_client(clientfd, "Enter Balance in the Joint Account: \n");
                 new_initial_dep = receive_from_client(clientfd);
+                if (new_initial_dep == NULL)
+                {
+                    printf("Client has disconnected abruptly.\n\n");
+                    pthread_exit(NULL);
+                }
             }
 
             else
@@ -1455,18 +1587,37 @@ void *client_handler(void *a )
            
                 send_to_client(clientfd, "Enter Account type (Savings/Current): \n");
                 new_acc_type = receive_from_client(clientfd);
-            
+                if (new_acc_type == NULL)
+                {
+                    printf("Client has disconnected abruptly.\n\n");
+                    pthread_exit(NULL);
+                }
+
                 send_to_client(clientfd, "Enter Initial Deposit: \n");
                 new_initial_dep = receive_from_client(clientfd);
+                if (new_initial_dep == NULL)
+                {
+                    printf("Client has disconnected abruptly.\n\n");
+                    pthread_exit(NULL);
+                }
             }
             
             
             send_to_client(clientfd, "Enter your First Name: \n");
             new_fname = receive_from_client(clientfd);
+            if (new_fname == NULL)
+            {
+                printf("Client has disconnected abruptly.\n\n");
+                pthread_exit(NULL);
+            }
 
             send_to_client(clientfd, "Enter your Last Name: \n");
             new_lname = receive_from_client(clientfd);
-
+            if (new_lname == NULL)
+            {
+                printf("Client has disconnected abruptly.\n\n");
+                pthread_exit(NULL);
+            }
 
             // printf("Before lock\n");
             pthread_mutex_lock(&mutex1);
@@ -1539,7 +1690,8 @@ void *client_handler(void *a )
             break;
 
         case 3:
-            close_connection(clientfd, "You are unauthorized!\n");
+            close_connection(clientfd, "You are unauthorized!\nPress 'q' to quit.\n\n");
+            pthread_exit(NULL);
             // printf("You are unauthorized!\n");
             break;
     }
@@ -1568,6 +1720,13 @@ void *client_handler(void *a )
 
 int main(int argc, char **argv)
 {
+    if (signal(SIGINT, signal_handler) == SIG_ERR)
+    {
+        printf("Error in catching SIGINT\n");
+    }
+    
+    while (1) {
+        
     printf("SERVER...\n");
     
     int total_visitors_today = 0;
@@ -1653,6 +1812,8 @@ int main(int argc, char **argv)
             i = 0;  
         }
         
+    }
+    exit(1);
     }
     return 0;
 }

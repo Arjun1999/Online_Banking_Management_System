@@ -49,13 +49,16 @@ II. Features implemented in the project :
 
 7. Extras :
 
-- The code allows re-prompting/re-entering of choice wherever possible.
+- The code allows re-prompting/re-entering of choices wherever possible.
 - Sufficient checks and error messages to take care of ambiguities and incorrect information such as incorrect password and confirmation passwords.
 - Ambiguities while handling of joint accounts (adding, viewing details) are taken care of.
+- All interactions with the database are solely handled by an Admin.
+- SIGINT handler to take care of abrupt disconnections. (via Ctrl-C)
+- Takes care of the message boundary problem. (Refer to this for an understanding of the problem : https://www.codeproject.com/Articles/11922/Solution-for-TCP-IP-client-socket-message-boundary) 
 
 III. Running the code
 
 1. To compile the server code, run the command : gcc -o server online_banking_server.c -lpthread
-2. To execute, run the command : ./server <port_number> (For eg : ./server 8000)
+2. To execute, run the command : ./server <port_number> (For eg -> ./server 8000)
 3. To compile the client code, run the command : gcc -o client online_banking_client.c -lpthread
-4. To execute, run the command : ./client <port_number> (For eg : ./client 8000)
+4. To execute, run the command : ./client <port_number> (For eg -> ./client 8000)

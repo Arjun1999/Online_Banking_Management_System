@@ -11,6 +11,7 @@
 #include <sys/sem.h>
 #include <sys/shm.h>
 #include <time.h>
+#include <sys/resource.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
@@ -18,6 +19,13 @@
 #define SEND_USERBUFFER_SIZE 1024
 #define RECV_USERBUFFER_SIZE 1024
 // #include <netinet/ip.h>
+
+//SIGINT handler.
+void signal_handler()
+{
+    printf("\n\nClient Shut Down.\n");
+    exit(1);
+}
 
 void send_to_server(int sockfd, char *message)
 {
@@ -62,6 +70,13 @@ char* receive_from_server(int sockfd)
 
 int main(int argc, char **argv)
 {
+    if (signal(SIGINT, signal_handler) == SIG_ERR)
+    {
+        printf("Error in catching SIGINT\n");
+    }
+    
+    while(1) {
+        
     if (argc < 2)
     {
         printf("Insufficient Number of arguments\nPlease enter a port number!\n");
@@ -103,6 +118,7 @@ int main(int argc, char **argv)
     server_response = receive_from_server(sockfd);
     if(server_response == NULL)
     {
+        printf("You have been disconnected from the server.\n");
         break;
     }
     printf("%s\n", server_response);
@@ -116,6 +132,7 @@ int main(int argc, char **argv)
     // printf("%s\n", message);
     send_to_server(sockfd, message);
     }
-    
+    exit(1);
+    }
     return 0;
 }
