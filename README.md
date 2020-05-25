@@ -43,7 +43,7 @@ II. Features implemented in the project :
 -   Execute All Queries
 -   Exit
 
-5. The concepts applied throughout the project include Socket Programming , Process Management, File Management, Mutex Locking, Multithreading and Inter Process Communication Mechanisms.
+5. The concepts applied throughout the project include Socket Programming , Process Management, File Management, Mutex Locking, Multithreading , Signal Handling and Inter Process Communication Mechanisms.
 
 6. All functional interactions are displayed on the client side. The server side only displays messages whenever there is a new client connection. Along with this, the server side will display the total number of visitors for the day with each new connection. The server allows a total of 25 clients per session. This can always be changed manually in the code.
 
