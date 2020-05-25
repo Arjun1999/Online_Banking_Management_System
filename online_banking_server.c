@@ -368,18 +368,18 @@ void modify_account_handler(char *query)
             strcat(buffer_response_login, " ");
 
             
-            printf("Token comp : %d\n", strcmp(token_login, token_query_username));
+            // printf("Token comp : %d\n", strcmp(token_login, token_query_username));
             
             if(strcmp(token_login, token_query_username) == 0)
             {   
-                printf("Inside\n");
+                // printf("Inside\n");
                 // printf("Token login : %s\n", token_login);
                 // printf("Token Query : %s\n", token_query);
-                printf("Should be new pass : %s\n", token_query);
+                // printf("Should be new pass : %s\n", token_query);
 
                 strcat(buffer_response_login, token_query); //New Password
                 strcat(buffer_response_login, " ");
-                printf("Resp after new pass : %s\n", buffer_response_login);
+                // printf("Resp after new pass : %s\n", buffer_response_login);
 
                 token_login = strtok(NULL, " "); //Password
 
@@ -391,13 +391,13 @@ void modify_account_handler(char *query)
                 strcat(buffer_response_login, token_login);
                 strcat(buffer_response_login, "\n");
 
-                printf("%s\n", buffer_response_login);
+                // printf("%s\n", buffer_response_login);
 
                 write(fd4, buffer_response_login, strlen(buffer_response_login));
             }
             else
             {
-                printf("%s\n", buffer_copy_login);
+                // printf("%s\n", buffer_copy_login);
                 write(fd4, buffer_copy_login, strlen(buffer_copy_login));
             }
             
@@ -488,12 +488,12 @@ void delete_account_handler(char *query)
 
     pthread_mutex_unlock(&mutex3);
     
-    printf("Before mutex2\n");
+    // printf("Before mutex2\n");
     
     pthread_mutex_lock(&mutex2);
 
     int fd3 = open("LoginInformation.txt", O_RDONLY, 0);
-    printf("fd3 : %d\n", fd3);
+    // printf("fd3 : %d\n", fd3);
     if (fd3 < 0)
     {
         perror("Could not open the file containing login information.\n");
@@ -501,7 +501,7 @@ void delete_account_handler(char *query)
     }
 
     int fd4 = open("LoginInformationDuplicate.txt", O_WRONLY | O_CREAT, 0777);
-    printf("fd4 : %d\n", fd4);
+    // printf("fd4 : %d\n", fd4);
     if (fd4 < 0)
     {
         perror("Could not open the file containing duplicate login information.\n");
@@ -535,17 +535,17 @@ void delete_account_handler(char *query)
         i += 1;
     }
     
-    printf("Begore fd3 close\n");
+    // printf("Begore fd3 close\n");
     close(fd3);
-    printf("After fd3 close\n");
+    // printf("After fd3 close\n");
     close(fd4);
-    printf("Begore fd4 close\n");
+    // printf("Begore fd4 close\n");
 
     int rem1 = remove("LoginInformation.txt");
-    printf("After remove : %d\n", rem1);
+    // printf("After remove : %d\n", rem1);
     // printf("Remove : %d\n", rem);
     int ren1 = rename("LoginInformationDuplicate.txt", "LoginInformation.txt");
-    printf("After rename : %d\n", ren1);
+    // printf("After rename : %d\n", ren1);
     // printf("Rename : %d\n", ren);
     pthread_mutex_unlock(&mutex2);
 
@@ -650,7 +650,7 @@ int individual_handler(int request_type)
             pthread_mutex_lock(&mutex1);
 
             fd1 = open("AdminRequests.txt", O_RDONLY, 0);
-            printf("fd1 : %d\n", fd1);
+            // printf("fd1 : %d\n", fd1);
             if (fd1 < 0)
             {
                 perror("Could not open the file containing query requests to Admin.\n");
@@ -658,7 +658,7 @@ int individual_handler(int request_type)
             }
 
             fd2 = open("AdminRequestsDuplicate.txt", O_WRONLY | O_CREAT, 0777);
-            printf("fd2 : %d\n", fd2);
+            // printf("fd2 : %d\n", fd2);
             if (fd2 < 0)
             {
                 perror("Could not create duplicate file containing query requests to Admin.\n");
@@ -702,9 +702,9 @@ int individual_handler(int request_type)
             close(fd2);
 
             rem = remove("AdminRequests.txt");
-            printf("Remove : %d\n", rem);
+            // printf("Remove : %d\n", rem);
             ren = rename("AdminRequestsDuplicate.txt", "AdminRequests.txt");
-            printf("Rename : %d\n", ren);
+            // printf("Rename : %d\n", ren);
             // printf("WTAF\n");
             pthread_mutex_unlock(&mutex1);
             break;
@@ -764,12 +764,12 @@ int individual_handler(int request_type)
             close(fd1);
             close(fd2);
 
-            printf("WTF\n");
+            // printf("WTF\n");
             rem = remove("AdminRequests.txt");
-            printf("Remove : %d\n", rem);
+            // printf("Remove : %d\n", rem);
             ren = rename("AdminRequestsDuplicate.txt", "AdminRequests.txt");
-            printf("Rename : %d\n", ren);
-            printf("WTAF\n");
+            // printf("Rename : %d\n", ren);
+            // printf("WTAF\n");
             pthread_mutex_unlock(&mutex1);
             break;
 
@@ -828,9 +828,9 @@ int individual_handler(int request_type)
             close(fd2);
 
             rem = remove("AdminRequests.txt");
-            printf("Remove : %d\n", rem);
+            // printf("Remove : %d\n", rem);
             ren = rename("AdminRequestsDuplicate.txt", "AdminRequests.txt");
-            printf("Rename : %d\n", ren);
+            // printf("Rename : %d\n", ren);
             // printf("WTAF\n");
             pthread_mutex_unlock(&mutex1);
             break;
@@ -927,23 +927,23 @@ void admin_handler(char *username, char *password, int unique_account_id, int cl
                 retval = individual_handler(choice);
                 if(retval == 1)
                 {
-                    send_to_client(clientfd, "Queries successfully executed\n");
+                    send_to_client(clientfd, "Queries successfully executed\nIf you wish to perform some other operation , please enter the option number again : \n\n");
                 }
                 else
                 {
                     if(choice == 1)
                     {
-                        send_to_client(clientfd, "No pending Add queries\n");
+                        send_to_client(clientfd, "No pending Add queries\nIf you wish to perform some other operation , please enter the option number again : \n\n");
                     }
                     
                     else if (choice == 2)
                     {
-                        send_to_client(clientfd, "No pending Delete queries\n");
+                        send_to_client(clientfd, "No pending Delete queries\nIf you wish to perform some other operation , please enter the option number again : \n\n");
                     }
 
                     else 
                     {
-                        send_to_client(clientfd, "No pending Modify queries\n");
+                        send_to_client(clientfd, "No pending Modify queries\nIf you wish to perform some other operation , please enter the option number again : \n\n");
                     }
 
                     // else
@@ -957,7 +957,8 @@ void admin_handler(char *username, char *password, int unique_account_id, int cl
                 send_to_client(clientfd, "Enter the account number whose details you want to know: \n");
                 acc_id = receive_from_client(clientfd);
                 search_response = search_account_handler(acc_id);
-                send_to_client(clientfd, search_response);
+                strcat(search_response, "\nIf you wish to perform some other operation , please enter the option number again : \n\n");
+                    send_to_client(clientfd, search_response);
                 break;
                 
             case 5:
@@ -990,7 +991,7 @@ void admin_handler(char *username, char *password, int unique_account_id, int cl
                 {
                     strcat(combined_response, "No Modify Queries...\n");
                 }
-                strcat(combined_response, "\nAll queries have been executed.\n");
+                strcat(combined_response, "\nAll queries have been executed.\nIf you wish to perform some other operation , please enter the option number again : \n\n");
 
                 // individual_handler(4);
                 send_to_client(clientfd, combined_response);
@@ -1619,7 +1620,7 @@ int main(int argc, char **argv)
     pthread_mutex_init(&mutex2, NULL);
     pthread_mutex_init(&mutex3, NULL);
 
-    pthread_t thread_ids[10];
+    pthread_t thread_ids[30];
     
     int i = 0;
     while(1)
@@ -1641,10 +1642,11 @@ int main(int argc, char **argv)
         if( pthread_create( &thread_ids[i++], NULL, client_handler, &a) != 0 )
             perror("Could not create thread.\n ");
 
-        if( i >= 5 )
+        // Let's in 15 clients per server session.
+        if( i >= 25 )
         {
             i = 0;
-            while (i < 5)
+            while (i < 25)
             {
                 pthread_join(thread_ids[i++], NULL);
             }

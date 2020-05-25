@@ -44,3 +44,18 @@ II. Features implemented in the project :
 -   Exit
 
 5. The concepts applied throughout the project include Socket Programming , Process Management, File Management, Mutex Locking, Multithreading and Inter Process Communication Mechanisms.
+
+6. All functional interactions are displayed on the client side. The server side only displays messages whenever there is a new client connection. Along with this, the server side will display the total number of visitors for the day with each new connection. The server allows a total of 25 clients per session. This can always be changed manually in the code.
+
+7. Extras :
+
+- The code allows re-prompting/re-entering of choice wherever possible.
+- Sufficient checks and error messages to take care of ambiguities and incorrect information such as incorrect password and confirmation passwords.
+- Ambiguities while handling of joint accounts (adding, viewing details) are taken care of.
+
+III. Running the code
+
+1. To compile the server code, run the command : gcc -o server online_banking_server.c -lpthread
+2. To execute, run the command : ./server <port_number> (For eg : ./server 8000)
+3. To compile the client code, run the command : gcc -o client online_banking_client.c -lpthread
+4. To execute, run the command : ./client <port_number> (For eg : ./client 8000)
