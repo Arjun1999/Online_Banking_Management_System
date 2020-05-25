@@ -76,6 +76,7 @@ void close_connection(int clientfd, char *closing_message)
 {
     send_to_client(clientfd, closing_message);
     shutdown(clientfd, SHUT_RDWR);
+    close(clientfd);
 }
 
 int deposit_withdraw_handler(int account_id, int operation, int amount)
@@ -93,7 +94,7 @@ int deposit_withdraw_handler(int account_id, int operation, int amount)
     pthread_mutex_lock(&mutex1);
     
     fd1 = open("AccountsInformation.txt", O_RDONLY, 0);
-    printf("fd1 : %d\n", fd1);
+    // printf("fd1 : %d\n", fd1);
     if (fd1 < 0)
     {
         perror("Could not open the file containing accounts information.\n");
@@ -101,7 +102,7 @@ int deposit_withdraw_handler(int account_id, int operation, int amount)
     }
 
     fd2 = open("AccountsInformationDuplicate.txt", O_WRONLY | O_CREAT, 0777);
-    printf("fd2 : %d\n", fd2);
+    // printf("fd2 : %d\n", fd2);
     if (fd2 < 0)
     {
         perror("Could not create duplicate file containing accounts information.\n");
@@ -114,7 +115,7 @@ int deposit_withdraw_handler(int account_id, int operation, int amount)
         if (buffer[i] == '\n' || buffer[i] == 0x0)
         {
             buffer[i] = 0;
-            printf("%s\n", buffer);
+            // printf("%s\n", buffer);
             char buffer_copy[140];
             // printf("YOLO\n");
             char *token = strtok(buffer, " "); //Account ID
@@ -160,14 +161,14 @@ int deposit_withdraw_handler(int account_id, int operation, int amount)
                     
                 }
                 
-                printf("New amt : %d\n", new_amt);
+                // printf("New amt : %d\n", new_amt);
                 char* new_amt_str = (char *)malloc(140);
                 
                 sprintf(new_amt_str, "%d", new_amt);
                 
                 strncpy(token, new_amt_str, strlen(new_amt_str)); 
                 int n = strlen(token) - strlen(new_amt_str);
-                printf("Sub : %d\n", n);
+                // printf("Sub : %d\n", n);
                 if(n > 0)
                 {
                     for (int i = 0; i < n; i++)
@@ -179,9 +180,9 @@ int deposit_withdraw_handler(int account_id, int operation, int amount)
             strcat(buffer_copy, token); 
             strcat(buffer_copy, "\n"); 
             // printf("Token : %s\n", token);
-            printf("Buffer : %s\n", buffer_copy);
+            // printf("Buffer : %s\n", buffer_copy);
             int w = write(fd2, buffer_copy, strlen(buffer_copy));
-            printf("Write : %d\n", w);
+            // printf("Write : %d\n", w);
 
             i = 0;
             continue;
@@ -1041,7 +1042,8 @@ void user_handler(char *username, char* password, int unique_account_id, int cli
                 account_id = atoi(acc_id);
                 if(account_id != unique_account_id)
                 {
-                    send_to_client(clientfd, "Incorrect Account ID!\n");
+                    send_to_client(clientfd, "Incorrect Account ID!\nPlease choose the operation to perform again : \n\n");
+                    // pthread_exit(NULL);
                     break;  
                 }
 
@@ -1052,11 +1054,12 @@ void user_handler(char *username, char* password, int unique_account_id, int cli
                 deposit_withdraw_ret = deposit_withdraw_handler(account_id, operation, amount);
                 if(deposit_withdraw_ret == 0)
                 {
-                    send_to_client(clientfd, "Money Deposited Successfully\n");
+                    send_to_client(clientfd, "Money Deposited Successfully\nIf you wish to perform any other operation, please enter the number of your choice again : \n");
                 }
                 else
                 {
-                    send_to_client(clientfd, "Transaction Failed\n");
+                    close_connection(clientfd, "Transaction Failed\nPress 'q' to quit.\n\n");
+                    pthread_exit(NULL);
                 }
                 
                 break;
@@ -1069,7 +1072,8 @@ void user_handler(char *username, char* password, int unique_account_id, int cli
                 account_id = atoi(acc_id);
                 if (account_id != unique_account_id)
                 {
-                    send_to_client(clientfd, "Incorrect Account ID!\n");
+                    send_to_client(clientfd, "Incorrect Account ID!\nPlease choose the operation to perform again : \n\n");
+                    // pthread_exit(NULL);
                     break;
                 }
 
@@ -1080,11 +1084,11 @@ void user_handler(char *username, char* password, int unique_account_id, int cli
                 deposit_withdraw_ret = deposit_withdraw_handler(account_id, operation, amount);
                 if (deposit_withdraw_ret == -1)
                 {
-                    send_to_client(clientfd, "Transaction Failed. Insufficient Balance\n");
+                    send_to_client(clientfd, "Transaction Failed. Insufficient Balance\nIf you wish to perform any other operation, please enter the number of your choice again : \n");
                 }
                 else
                 {
-                    send_to_client(clientfd, "Money Withdrawn Successfully\n");
+                    send_to_client(clientfd, "Money Withdrawn Successfully\nIf you wish to perform any other operation, please enter the number of your choice again : \n");
                 }
                 
                 break;
@@ -1098,7 +1102,7 @@ void user_handler(char *username, char* password, int unique_account_id, int cli
                 account_id = atoi(acc_id);
                 if (account_id != unique_account_id)
                 {
-                    send_to_client(clientfd, "Incorrect Account ID!\n");
+                    send_to_client(clientfd, "Incorrect Account ID!\nPlease choose the operation to perform again : \n\n");
                     break;
                 }
 
@@ -1106,12 +1110,13 @@ void user_handler(char *username, char* password, int unique_account_id, int cli
 
                 if(balance == -1)
                 {
-                    send_to_client(clientfd,"The account no longer exists!\n");
+                    close_connection(clientfd,"The account no longer exists!\nPress 'q' to quit.\n\n");
+                    pthread_exit(NULL);
                 }
                 else
                 {
                     sprintf(balance_str, "%d", balance);
-                    strcat(balance_str, " is your balance\n");
+                    strcat(balance_str, " is your balance\nIf you wish to perform any other operation, please enter the number of your choice again : \n");
                     send_to_client(clientfd, balance_str);
                 }
                 
@@ -1151,7 +1156,8 @@ void user_handler(char *username, char* password, int unique_account_id, int cli
                         lseek(query_fd, 0L, SEEK_END);
                         write(query_fd, query_buff, strlen(query_buff));
                         pthread_mutex_unlock(&mutex1);
-                        send_to_client(clientfd, "Your query has been successfully added to the query list for the Admin to be reviewed.\n");
+                        close_connection(clientfd, "Your query has been successfully added to the query list for the Admin to be reviewed.\nWe expect your query to be reviewed within 1 business day.\nPress 'q' to quit.\n\n");
+                        pthread_exit(NULL);
                         // track_session = 0;
                         break;
                     }
@@ -1183,6 +1189,7 @@ void user_handler(char *username, char* password, int unique_account_id, int cli
                 else
                 {
                     search_response = search_account_handler(acc_id);
+                    strcat(search_response, "\nIf you wish to perform any other operation, please enter the number of your choice again : \n");
                     send_to_client(clientfd, search_response);
                 }
                 // pthread_mutex_lock(&mutex1);
@@ -1211,7 +1218,7 @@ void user_handler(char *username, char* password, int unique_account_id, int cli
                 
                 if (account_id != unique_account_id)
                 {
-                    send_to_client(clientfd, "Incorrect Account ID!\n");
+                    send_to_client(clientfd, "Incorrect Account ID!\nPlease choose the operation to perform again : \n\n");
                     break;
                 }
 
@@ -1228,7 +1235,8 @@ void user_handler(char *username, char* password, int unique_account_id, int cli
                 lseek(query_fd, 0L, SEEK_END);
                 write(query_fd, query_buff, strlen(query_buff));
                 pthread_mutex_unlock(&mutex1);
-                send_to_client(clientfd, "Your query has been successfully added to the query list for the Admin to be reviewed.\n");
+                close_connection(clientfd, "Your query has been successfully added to the query list for the Admin to be reviewed.\nWe expect your query to be reviewed within 1 business day.\nPress 'q' to quit.\n\n");
+                pthread_exit(NULL);
                 // track_session = 0;
                 break;
 
@@ -1459,15 +1467,15 @@ void *client_handler(void *a )
             new_lname = receive_from_client(clientfd);
 
 
-            printf("Before lock\n");
+            // printf("Before lock\n");
             pthread_mutex_lock(&mutex1);
-            printf("After lock\n");
+            // printf("After lock\n");
             int query_fd = open("AdminRequests.txt", O_WRONLY | O_CREAT, 0777);
             if (query_fd < 0)
             {
                 printf("Could not open the file containing requests to Admin.\n");
             }
-            printf("%d\n", query_fd);
+            // printf("%d\n", query_fd);
             char *query_buff = (char *)malloc(140);
             strcpy(query_buff, "Add ");
             strcat(query_buff, new_username);
@@ -1487,46 +1495,46 @@ void *client_handler(void *a )
             strcat(query_buff, new_initial_dep);
             strcat(query_buff, "\n");
 
-            printf("%s\n", query_buff);
+            // printf("%s\n", query_buff);
 
             lseek(query_fd, 0L, SEEK_END);
             write(query_fd, query_buff, strlen(query_buff));
             pthread_mutex_unlock(&mutex1);
 
-            strcat(new_acc_no, " is your unique account number for future transactions.\nYour account will be activated within 2 working days.\nThank you for opening an account with us!\n\n");
-            send_to_client(clientfd, new_acc_no);
+            strcat(new_acc_no, " is your unique account number for future transactions.\nYour account will be activated within 2 working days.\nThank you for opening an account with us!\nPress 'q' to quit.\n\n");
+            close_connection(clientfd, new_acc_no);
         }
         else
         {
-            send_to_client(clientfd, "Thank you for visiting!\n");
+            close_connection(clientfd, "Thank you for visiting!\nPress 'q' to quit.\n\n");
         }
         pthread_exit(NULL);
     } 
 
     if(auth_values[1] == -1)
     {
-        send_to_client(clientfd, "Incorrect password entered!\n");
+        close_connection(clientfd, "Incorrect password entered!\nPress 'q' to quit\n\n");
         pthread_exit(NULL);
     }
 
     switch(auth_values[2])
     {
         case 0:
-            printf("Normal User\n");
+            // printf("Normal User\n");
             user_handler(username, password, unique_account_id, clientfd);
-            close_connection(clientfd, "Thank you for visiting us!\nPlease do come back again.\n");
+            close_connection(clientfd, "Thank you for visiting us!\nPlease do come back again.\nPress 'q' to quit.\n\n");
             break;
 
         case 1:
-            printf("Joint User\n");
+            // printf("Joint User\n");
             user_handler(username, password, unique_account_id, clientfd);
-            close_connection(clientfd, "Thank you for visiting us!\nPlease do come back again.\n");
+            close_connection(clientfd, "Thank you for visiting us!\nPlease do come back again.\nPress 'q' to quit.\n\n");
             break;
 
         case 2:
-            printf("Admin User\n");
+            // printf("Admin User\n");
             admin_handler(username, password, unique_account_id, clientfd);
-            close_connection(clientfd, "Thank you for visiting us!\nPlease do come back again.\n");
+            close_connection(clientfd, "Thank you for visiting us!\nPlease do come back again.\nPress 'q' to quit.\n\n");
             break;
 
         case 3:
@@ -1560,6 +1568,8 @@ void *client_handler(void *a )
 int main(int argc, char **argv)
 {
     printf("SERVER...\n");
+    
+    int total_visitors_today = 0;
     
     int sockfd;
     int clientfd;
@@ -1623,7 +1633,10 @@ int main(int argc, char **argv)
             exit(0);
         }
 
+        total_visitors_today += 1;
+
         printf("Connected to client: %s\n", inet_ntoa(client_address.sin_addr));
+        printf("Total visitors today : %d\n", total_visitors_today);
 
         if( pthread_create( &thread_ids[i++], NULL, client_handler, &a) != 0 )
             perror("Could not create thread.\n ");
